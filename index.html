@@ -1,0 +1,3777 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1020">
+    <title>Nanobanana Linker - AI Prompt Manager</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./icon-512.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Verdana', sans-serif;
+        }
+
+        .app-gradient {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .character-slot {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .character-slot.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .image-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .image-preview:hover {
+            transform: scale(1.1);
+        }
+
+        .tab-button {
+            position: relative;
+            padding: 12px 24px;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #3b82f6;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #3b82f6;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* V2 Styles */
+        .mode-btn {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .db-subtab {
+            color: #64748b;
+            position: relative;
+        }
+
+        .db-subtab.active {
+            color: #3b82f6;
+        }
+
+        .db-subtab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #3b82f6;
+        }
+
+        .character-card {
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .character-card.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .character-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .situation-btn.active,
+        .action-btn.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            font-weight: 600;
+        }
+
+        /* Accordion (V5) */
+        .accordion {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .accordion-header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.3s ease;
+        }
+
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
+        .accordion-header .icon {
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.collapsed .icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            padding: 1.5rem;
+            background: white;
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .accordion-content.collapsed {
+            max-height: 0;
+            padding: 0 1.5rem;
+        }
+    </style>
+</head>
+<body class="app-gradient min-h-screen">
+    <!-- Main Container -->
+    <div id="app" class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-8 fade-in">
+            <h1 class="text-4xl font-bold text-blue-600 mb-2">🍌 Nanobanana Linker</h1>
+            <p class="text-gray-600">AI画像生成プロンプト管理ツール</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="card mb-6 overflow-hidden">
+            <div class="flex border-b">
+                <button class="tab-button active flex-1" data-tab="generator">
+                    <span class="text-lg">🎨</span> Generator Hub
+                </button>
+                <button class="tab-button flex-1" data-tab="story">
+                    <span class="text-lg">📖</span> Story Mode
+                </button>
+                <button class="tab-button flex-1" data-tab="database">
+                    <span class="text-lg">👥</span> Database
+                </button>
+                <button class="tab-button flex-1" data-tab="settings">
+                    <span class="text-lg">⚙️</span> Settings
+                </button>
+            </div>
+        </nav>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <!-- Generator Hub Tab (V2 Syntax Builder) -->
+            <div id="generator-tab" class="tab-content fade-in">
+                <!-- Mode Selection -->
+                <div class="card p-4 mb-6">
+                    <div class="flex justify-center space-x-4">
+                        <button class="mode-btn active px-8 py-3 rounded-lg font-semibold transition" data-mode="solo">
+                            👤 Solo
+                        </button>
+                        <button class="mode-btn px-8 py-3 rounded-lg font-semibold transition" data-mode="duo">
+                            👥 Duo/Group
+                        </button>
+                        <button class="mode-btn px-8 py-3 rounded-lg font-semibold transition" data-mode="comic">
+                            📖 Comic
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Builder Section -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <!-- Accordion 1: Character Settings -->
+                        <div class="accordion">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span>👤 キャラクター設定</span>
+                                <span class="icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div id="character-selector" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                    <div class="text-center text-gray-400 col-span-full py-8">
+                                        キャラクターを登録してください
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- V8: Per-Character Advanced Settings -->
+                        <div id="per-character-advanced-settings" class="space-y-4">
+                            <!-- Dynamically populated when characters are selected -->
+                        </div>
+
+                        <!-- Accordion 2: Scene & Props (V6) -->
+                        <div class="accordion">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span>🎬 Scene & Props （シーン・小物・時間帯）</span>
+                                <span class="icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="space-y-6">
+                                    <!-- Where? Situation Selection -->
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">📍 Where? （場所）</h3>
+                                        <div id="situation-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
+                                                指定なし
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Doing What? Action Selection -->
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎬 Doing What? （行動）</h3>
+                                        <div id="action-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                                            <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
+                                                指定なし
+                                            </button>
+                                        </div>
+                                        <label class="block text-gray-700 font-semibold mb-2">フリー入力（日本語可）</label>
+                                        <textarea id="custom-action-input" rows="2" placeholder="例：丸々しているところ、祈っている、など"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                                    </div>
+
+                                    <!-- Props (V6) -->
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎁 Props （小物）</h3>
+                                        <div id="props-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                                            <button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
+                                                指定なし
+                                            </button>
+                                        </div>
+                                        <label class="block text-gray-700 font-semibold mb-2">フリー入力（小物）</label>
+                                        <textarea id="custom-props-input" rows="2" placeholder="例：剣、本、花束、など"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                                    </div>
+
+                                    <!-- Time of Day (V6) -->
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🌅 When? （時間帯）</h3>
+                                        <select id="time-of-day-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">指定なし</option>
+                                            <option value="morning glow, sunrise">🌅 朝焼け (Morning Glow, Sunrise)</option>
+                                            <option value="morning, daylight">☀️ 朝 (Morning, Daylight)</option>
+                                            <option value="noon, sunny">🌞 昼 (Noon, Sunny)</option>
+                                            <option value="sunset, dusk">🌇 夕方 (Sunset, Dusk)</option>
+                                            <option value="night, moonlight">🌙 夜 (Night, Moonlight)</option>
+                                            <option value="midnight, starry sky">🌌 深夜 (Midnight, Starry Sky)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Options (Duo Mode) -->
+                                    <div class="hidden" id="duo-options">
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">オプション</h3>
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            <input type="checkbox" id="auto-person-tags" checked class="w-5 h-5 rounded">
+                                            <span class="text-gray-700">人数タグを自動追加（2boys, multiple girlsなど）</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 3: Style & Color (V6) -->
+                        <div class="accordion">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span>🎨 Style & Color （画風・色・線・レイアウト）</span>
+                                <span class="icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="space-y-6">
+                                    <!-- Art Styles (Multi-select V6) -->
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-3">🖼️ アートスタイル（複数選択可）</label>
+                                        <div id="art-style-checkboxes" class="space-y-2 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                            <div class="text-sm text-gray-400">スタイルを登録してください</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Lineart Strength (V6) -->
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-3">✏️ 線の強弱</label>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="lineart-strength" value="" checked>
+                                                <span class="text-sm">指定なし</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="lineart-strength" value="outline">
+                                                <span class="text-sm">縁取りあり</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="lineart-strength" value="thick outline">
+                                                <span class="text-sm">太い縁取り</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="lineart-strength" value="borderless">
+                                                <span class="text-sm">縁取りなし</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Color Palette -->
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-3">🎨 カラー設定</label>
+                                        <div class="space-y-3">
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="radio" name="color-mode" value="none" checked>
+                                                    <span class="text-sm">指定なし</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="radio" name="color-mode" value="monotone">
+                                                    <span class="text-sm">Monotone</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="radio" name="color-mode" value="two-tone">
+                                                    <span class="text-sm">Two-tone</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="radio" name="color-mode" value="background">
+                                                    <span class="text-sm">Background</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="radio" name="color-mode" value="theme">
+                                                    <span class="text-sm">Theme Color</span>
+                                                </label>
+                                            </div>
+
+                                            <div id="color-picker-container" class="space-y-2">
+                                                <div class="flex items-center space-x-3">
+                                                    <label class="text-sm font-semibold w-24">Color 1:</label>
+                                                    <input type="color" id="color-1" value="#FF0000" class="w-16 h-10 rounded border-2 border-gray-300">
+                                                    <span id="color-1-hex" class="text-sm text-gray-600">#FF0000</span>
+                                                </div>
+                                                <div class="flex items-center space-x-3 hidden" id="color-2-row">
+                                                    <label class="text-sm font-semibold w-24">Color 2:</label>
+                                                    <input type="color" id="color-2" value="#0000FF" class="w-16 h-10 rounded border-2 border-gray-300">
+                                                    <span id="color-2-hex" class="text-sm text-gray-600">#0000FF</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Aspect Ratio -->
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">📐 アスペクト比</label>
+                                        <select id="aspect-ratio-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">指定なし</option>
+                                            <option value="1:1">1:1 (Square)</option>
+                                            <option value="3:4">3:4 (Portrait)</option>
+                                            <option value="4:3">4:3 (Landscape)</option>
+                                            <option value="16:9">16:9 (Wide)</option>
+                                            <option value="9:16">9:16 (Vertical)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Preview & Actions Section -->
+                    <div class="space-y-6">
+                        <!-- Preview -->
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">プレビュー</h3>
+                            <div id="prompt-preview" class="bg-gray-50 p-4 rounded-lg text-sm text-gray-700 min-h-32 max-h-64 overflow-y-auto scrollbar-thin font-mono whitespace-pre-wrap">
+                                プロンプトがここに表示されます
+                            </div>
+                        </div>
+
+                        <!-- Reference Images -->
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">参考画像</h3>
+                            <div id="reference-images" class="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto scrollbar-thin">
+                                <div class="text-center text-gray-400 col-span-3 py-8 text-sm">
+                                    キャラを選択すると表示されます
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="card p-6 space-y-3">
+                            <button id="copy-prompt-btn" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold">
+                                📋 プロンプトをコピー
+                            </button>
+                            <button id="save-images-btn" class="bg-green-500 hover:bg-green-600 w-full text-white px-6 py-3 rounded-lg font-semibold transition">
+                                💾 画像を保存
+                            </button>
+                        </div>
+
+                        <!-- Output Format (V4) -->
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">出力形式 (V4)</h3>
+                            <select id="output-format" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-3">
+                                <option value="standard">📋 Standard Tags (英語タグ)</option>
+                                <option value="simple-jp">🇯🇵 Simple JP (日本語)</option>
+                                <option value="natural">📝 Natural Prompt (英文)</option>
+                            </select>
+
+                            <label class="flex items-center space-x-3 cursor-pointer p-3 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+                                <input type="checkbox" id="strict-source-mode" class="w-5 h-5 rounded">
+                                <span class="text-gray-800 text-sm font-semibold">🔒 Strict Source Mode（画像を唯一のソースにする）</span>
+                            </label>
+                        </div>
+
+                        <!-- Quality Presets -->
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">品質設定</h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="quality-positive-toggle" checked class="w-5 h-5 rounded">
+                                    <span class="text-gray-700 text-sm">高画質化タグ (Positive)</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="quality-negative-toggle" checked class="w-5 h-5 rounded">
+                                    <span class="text-gray-700 text-sm">ネガティブタグ (Negative)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Story Mode Tab (V3) -->
+            <div id="story-tab" class="tab-content hidden">
+                <!-- Project List View -->
+                <div id="project-list-view">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">📚 プロジェクト一覧</h2>
+                            <button id="add-project-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                ➕ 新規プロジェクト
+                            </button>
+                        </div>
+                        <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- Project Detail View (Pages) -->
+                <div id="project-detail-view" class="hidden">
+                    <div class="card p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <button id="back-to-projects" class="text-blue-500 hover:text-blue-700 font-semibold">
+                                ← プロジェクト一覧に戻る
+                            </button>
+                            <div class="space-x-2">
+                                <button id="edit-project-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                                    ✏️ プロジェクト設定
+                                </button>
+                                <button id="delete-project-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                                    🗑️ プロジェクト削除
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="project-info" class="mb-4">
+                            <h2 id="project-title-display" class="text-3xl font-bold text-gray-800 mb-2"></h2>
+                            <div id="project-plot-display" class="text-gray-600 whitespace-pre-wrap mb-4"></div>
+
+                            <!-- Style Presets -->
+                            <div class="flex flex-wrap gap-3 mb-4">
+                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
+                                    <input type="checkbox" id="style-monochrome" class="style-preset">
+                                    <label class="text-sm font-semibold">⬛ Monochrome Manga</label>
+                                </div>
+                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
+                                    <input type="checkbox" id="style-fullcolor" class="style-preset">
+                                    <label class="text-sm font-semibold">🎨 Full Color</label>
+                                </div>
+                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
+                                    <input type="checkbox" id="style-4koma" class="style-preset">
+                                    <label class="text-sm font-semibold">📄 4-Koma</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pages -->
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">📄 ページ管理</h3>
+                            <button id="add-page-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                ➕ ページ追加
+                            </button>
+                        </div>
+                        <div id="pages-container" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Tab -->
+            <div id="database-tab" class="tab-content hidden">
+                <!-- Sub-tabs for Database -->
+                <div class="card mb-6 overflow-hidden">
+                    <div class="flex border-b">
+                        <button class="db-subtab active flex-1 py-3 font-semibold transition" data-subtab="characters">
+                            👥 Characters
+                        </button>
+                        <button class="db-subtab flex-1 py-3 font-semibold transition" data-subtab="situations">
+                            📍 Situations
+                        </button>
+                        <button class="db-subtab flex-1 py-3 font-semibold transition" data-subtab="actions">
+                            🎬 Actions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Characters Sub-tab -->
+                <div id="characters-subtab" class="db-subtab-content">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">キャラクターデータベース</h2>
+                            <div class="space-x-2">
+                                <button id="import-json-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition">
+                                    📥 Import JSON
+                                </button>
+                                <button id="export-json-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition">
+                                    📤 Export JSON
+                                </button>
+                                <button id="add-character-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                    ➕ 新規登録
+                                </button>
+                            </div>
+                        </div>
+                        <div id="character-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- Situations Sub-tab -->
+                <div id="situations-subtab" class="db-subtab-content hidden">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">シチュエーション（場所）データベース</h2>
+                            <button id="add-situation-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                ➕ 新規登録
+                            </button>
+                        </div>
+                        <div id="situation-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- Actions Sub-tab -->
+                <div id="actions-subtab" class="db-subtab-content hidden">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">アクション（行動）データベース</h2>
+                            <button id="add-action-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                ➕ 新規登録
+                            </button>
+                        </div>
+                        <div id="action-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content hidden">
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">品質プリセット設定</h2>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">高画質化タグ (Positive)</label>
+                            <textarea id="positive-preset" rows="4"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="masterpiece, best quality, ultra detailed..."></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">ネガティブタグ (Negative)</label>
+                            <textarea id="negative-preset" rows="4"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="low quality, blurry, bad anatomy..."></textarea>
+                        </div>
+
+                        <button id="save-presets-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-semibold">
+                            💾 保存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Style Management (V5) -->
+                <div class="card p-6 mt-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">🎨 アートスタイル管理</h2>
+                        <button id="add-style-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                            ➕ スタイル追加
+                        </button>
+                    </div>
+
+                    <div id="style-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+
+                <!-- Props Management (V6) -->
+                <div class="card p-6 mt-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">🎁 小物管理 (Props)</h2>
+                        <button id="add-prop-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                            ➕ 小物追加
+                        </button>
+                    </div>
+
+                    <div id="props-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Style Modal (V5) -->
+    <div id="style-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="style-modal-title">スタイル登録</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="style-form" class="space-y-4">
+                <input type="hidden" id="style-id">
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">スタイル名 (Name)</label>
+                    <input type="text" id="style-name" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：アニメ風、油絵調">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">プロンプト (Prompt)</label>
+                    <textarea id="style-prompt" rows="4" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：anime style, vibrant colors, cel shading"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold">
+                    💾 保存
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Props Modal (V6) -->
+    <div id="props-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="props-modal-title">小物登録</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="props-form" class="space-y-4">
+                <input type="hidden" id="prop-id">
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">小物名 (Name)</label>
+                    <input type="text" id="prop-name" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：剣、本、花束">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">プロンプト (Prompt)</label>
+                    <textarea id="prop-prompt" rows="4" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：sword, steel blade, ornate handle"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold">
+                    💾 保存
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Character Edit Modal (V4 Builder) -->
+    <div id="character-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="modal-title">キャラクター・ビルダー</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="character-form" class="space-y-6">
+                <input type="hidden" id="character-id">
+
+                <!-- Basic Info Section -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-2xl mr-2">📝</span> 基本情報
+                    </h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">名前 (Name)</label>
+                            <input type="text" id="character-name" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="例：カミル">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">種族 (Species)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="species-jp"
+                                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="日本語: 天使">
+                                <input type="text" id="species-en"
+                                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="English: angel">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-gray-700 font-semibold mb-2">性別 (Gender)</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="male" class="mr-2">
+                                <span>🔵 男性 (Male)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="female" class="mr-2">
+                                <span>🔴 女性 (Female)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="androgynous" class="mr-2" checked>
+                                <span>⚪ 中性的 (Androgynous)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- V8: Physical Attributes -->
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">見た目年齢 (Apparent Age)</label>
+                            <input type="text" id="character-age"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="例：16歳くらい、20代前半、child">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">身長 (Height)</label>
+                            <input type="text" id="character-height"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="例：158cm、tall、short">
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-gray-700 font-semibold mb-2">骨格・体型 (Body Type)</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="slender, thin" class="mr-2">
+                                <span class="text-sm">🪶 線が細い (Slender)</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="chubby, plump" class="mr-2">
+                                <span class="text-sm">🍰 ぽっちゃり (Chubby)</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="skinny, very thin" class="mr-2">
+                                <span class="text-sm">🦴 ガリガリ (Skinny)</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="overweight, fat" class="mr-2">
+                                <span class="text-sm">🐻 おデブ (Overweight)</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="muscular, athletic" class="mr-2">
+                                <span class="text-sm">💪 筋肉質 (Muscular)</span>
+                            </label>
+                            <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-blue-50">
+                                <input type="radio" name="body-type" value="" class="mr-2" checked>
+                                <span class="text-sm">✏️ カスタム / 指定なし</span>
+                            </label>
+                        </div>
+                        <input type="text" id="custom-body-type"
+                            class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="カスタム体型タグ (例: petite, curvy, etc.)">
+                    </div>
+                </div>
+
+                <!-- Appearance Parts Section -->
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-2xl mr-2">✨</span> 外見パーツ
+                    </h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">髪型 (Hair Style)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="hair-jp"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="ロングヘア">
+                                <input type="text" id="hair-en"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="long hair">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">髪色 (Hair Color)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="haircolor-jp"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="薄茶色">
+                                <input type="text" id="haircolor-en"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="light brown">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">目の色 (Eye Color)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="eyes-jp"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="青い目">
+                                <input type="text" id="eyes-en"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="blue eyes">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">服装 (Clothes)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="clothes-jp"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="軍服">
+                                <input type="text" id="clothes-en"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="military uniform">
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-600 mb-1">アクセサリー (Accessories)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="accessories-jp"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="鍵のネックレス">
+                                <input type="text" id="accessories-en"
+                                    class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                                    placeholder="key necklace">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reference Images -->
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-2xl mr-2">🖼️</span> 参考画像
+                    </h4>
+                    <input type="file" id="character-images" multiple accept="image/*"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <div id="image-preview-container" class="grid grid-cols-4 gap-2 mt-3"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="btn-primary flex-1 text-white px-6 py-3 rounded-lg font-semibold">
+                        💾 保存
+                    </button>
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 flex-1 text-gray-700 px-6 py-3 rounded-lg font-semibold transition">
+                        キャンセル
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="image-viewer-modal" class="modal">
+        <div class="relative max-w-4xl mx-4">
+            <button class="close-modal absolute top-4 right-4 bg-white rounded-full w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100">
+                ✕
+            </button>
+            <img id="viewer-image" src="" alt="" class="max-w-full max-h-[90vh] rounded-lg">
+        </div>
+    </div>
+
+    <!-- Situation Edit Modal -->
+    <div id="situation-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-xl w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="situation-modal-title">シチュエーション登録</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="situation-form" class="space-y-4">
+                <input type="hidden" id="situation-id">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">名前（ラベル）</label>
+                    <input type="text" id="situation-name" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：私の部屋">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">タグ（Prompts）</label>
+                    <textarea id="situation-tags" rows="3" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="bedroom, indoor, white bed, curtain"></textarea>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="btn-primary flex-1 text-white px-6 py-3 rounded-lg font-semibold">
+                        💾 保存
+                    </button>
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 flex-1 text-gray-700 px-6 py-3 rounded-lg font-semibold transition">
+                        キャンセル
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Action Edit Modal -->
+    <div id="action-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-xl w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="action-modal-title">アクション登録</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="action-form" class="space-y-4">
+                <input type="hidden" id="action-id">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">名前（日本語ラベル）</label>
+                    <input type="text" id="action-name" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：祈っている">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">タグ（英語Prompts）</label>
+                    <textarea id="action-tags" rows="3" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="praying, clasped hands, closed eyes"></textarea>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="btn-primary flex-1 text-white px-6 py-3 rounded-lg font-semibold">
+                        💾 保存
+                    </button>
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 flex-1 text-gray-700 px-6 py-3 rounded-lg font-semibold transition">
+                        キャンセル
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Edit Modal (V3) -->
+    <div id="project-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="project-modal-title">プロジェクト作成</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="project-form" class="space-y-4">
+                <input type="hidden" id="project-id">
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">タイトル</label>
+                    <input type="text" id="project-title" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：魔法少女の日常">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">プロット（あらすじ）</label>
+                    <textarea id="project-plot" rows="6"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="物語のあらすじやメモを記入..."></textarea>
+                </div>
+
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit" class="btn-primary flex-1 text-white px-6 py-3 rounded-lg font-semibold">
+                        💾 保存
+                    </button>
+                    <button type="button" class="close-modal bg-gray-300 hover:bg-gray-400 flex-1 text-gray-700 px-6 py-3 rounded-lg font-semibold transition">
+                        キャンセル
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ===== IndexedDB Setup =====
+        const DB_NAME = 'NanobananaLinkerDB';
+        const DB_VERSION = 6; // V8: Extended Character fields (age, height, bodyType)
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+
+                    // Characters Store
+                    if (!db.objectStoreNames.contains('characters')) {
+                        const characterStore = db.createObjectStore('characters', { keyPath: 'id', autoIncrement: true });
+                        characterStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Situations Store (V2)
+                    if (!db.objectStoreNames.contains('situations')) {
+                        const situationStore = db.createObjectStore('situations', { keyPath: 'id', autoIncrement: true });
+                        situationStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Actions Store (V2)
+                    if (!db.objectStoreNames.contains('actions')) {
+                        const actionStore = db.createObjectStore('actions', { keyPath: 'id', autoIncrement: true });
+                        actionStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Projects Store (V3)
+                    if (!db.objectStoreNames.contains('projects')) {
+                        const projectStore = db.createObjectStore('projects', { keyPath: 'id', autoIncrement: true });
+                        projectStore.createIndex('title', 'title', { unique: false });
+                        projectStore.createIndex('createdAt', 'createdAt', { unique: false });
+                    }
+
+                    // Pages Store (V3)
+                    if (!db.objectStoreNames.contains('pages')) {
+                        const pageStore = db.createObjectStore('pages', { keyPath: 'id', autoIncrement: true });
+                        pageStore.createIndex('projectId', 'projectId', { unique: false });
+                        pageStore.createIndex('order', 'order', { unique: false });
+                    }
+
+                    // Styles Store (V5)
+                    if (!db.objectStoreNames.contains('styles')) {
+                        const styleStore = db.createObjectStore('styles', { keyPath: 'id', autoIncrement: true });
+                        styleStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Props Store (V6)
+                    if (!db.objectStoreNames.contains('props')) {
+                        const propStore = db.createObjectStore('props', { keyPath: 'id', autoIncrement: true });
+                        propStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Settings Store
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        // ===== Database Operations =====
+        function addCharacter(character) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['characters'], 'readwrite');
+                const store = transaction.objectStore('characters');
+                const request = store.add(character);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateCharacter(character) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['characters'], 'readwrite');
+                const store = transaction.objectStore('characters');
+                const request = store.put(character);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteCharacter(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['characters'], 'readwrite');
+                const store = transaction.objectStore('characters');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllCharacters() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['characters'], 'readonly');
+                const store = transaction.objectStore('characters');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Situation Operations (V2) =====
+        function addSituation(situation) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['situations'], 'readwrite');
+                const store = transaction.objectStore('situations');
+                const request = store.add(situation);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateSituation(situation) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['situations'], 'readwrite');
+                const store = transaction.objectStore('situations');
+                const request = store.put(situation);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteSituation(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['situations'], 'readwrite');
+                const store = transaction.objectStore('situations');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllSituations() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['situations'], 'readonly');
+                const store = transaction.objectStore('situations');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Action Operations (V2) =====
+        function addAction(action) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['actions'], 'readwrite');
+                const store = transaction.objectStore('actions');
+                const request = store.add(action);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateAction(action) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['actions'], 'readwrite');
+                const store = transaction.objectStore('actions');
+                const request = store.put(action);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteAction(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['actions'], 'readwrite');
+                const store = transaction.objectStore('actions');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllActions() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['actions'], 'readonly');
+                const store = transaction.objectStore('actions');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Style Operations (V5) =====
+        function addStyle(style) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['styles'], 'readwrite');
+                const store = transaction.objectStore('styles');
+                const request = store.add(style);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateStyle(style) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['styles'], 'readwrite');
+                const store = transaction.objectStore('styles');
+                const request = store.put(style);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteStyle(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['styles'], 'readwrite');
+                const store = transaction.objectStore('styles');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllStyles() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['styles'], 'readonly');
+                const store = transaction.objectStore('styles');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Props Operations (V6) =====
+        function addProp(prop) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['props'], 'readwrite');
+                const store = transaction.objectStore('props');
+                const request = store.add(prop);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateProp(prop) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['props'], 'readwrite');
+                const store = transaction.objectStore('props');
+                const request = store.put(prop);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteProp(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['props'], 'readwrite');
+                const store = transaction.objectStore('props');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllProps() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['props'], 'readonly');
+                const store = transaction.objectStore('props');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Project Operations (V3) =====
+        function addProject(project) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['projects'], 'readwrite');
+                const store = transaction.objectStore('projects');
+                project.createdAt = Date.now();
+                const request = store.add(project);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateProject(project) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['projects'], 'readwrite');
+                const store = transaction.objectStore('projects');
+                const request = store.put(project);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteProject(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['projects'], 'readwrite');
+                const store = transaction.objectStore('projects');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllProjects() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['projects'], 'readonly');
+                const store = transaction.objectStore('projects');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getProject(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['projects'], 'readonly');
+                const store = transaction.objectStore('projects');
+                const request = store.get(id);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== Page Operations (V3) =====
+        function addPage(page) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['pages'], 'readwrite');
+                const store = transaction.objectStore('pages');
+                const request = store.add(page);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updatePage(page) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['pages'], 'readwrite');
+                const store = transaction.objectStore('pages');
+                const request = store.put(page);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deletePage(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['pages'], 'readwrite');
+                const store = transaction.objectStore('pages');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getPagesByProject(projectId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['pages'], 'readonly');
+                const store = transaction.objectStore('pages');
+                const index = store.index('projectId');
+                const request = index.getAll(projectId);
+
+                request.onsuccess = () => {
+                    const pages = request.result;
+                    // Sort by order
+                    pages.sort((a, b) => a.order - b.order);
+                    resolve(pages);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function saveSetting(key, value) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['settings'], 'readwrite');
+                const store = transaction.objectStore('settings');
+                const request = store.put({ key, value });
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getSetting(key, defaultValue = '') {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['settings'], 'readonly');
+                const store = transaction.objectStore('settings');
+                const request = store.get(key);
+
+                request.onsuccess = () => {
+                    resolve(request.result ? request.result.value : defaultValue);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== UI State (V2) =====
+        let currentTab = 'generator';
+        let currentMode = 'solo'; // solo, duo, comic
+        let currentDBSubtab = 'characters';
+        let selectedCharacters = []; // Array of character objects
+        let selectedSituation = null;
+        let selectedAction = null;
+        let selectedImages = [];
+        let editingCharacterId = null;
+        let editingSituationId = null;
+        let editingActionId = null;
+
+        // V8: Per-character advanced settings
+        // Structure: { characterId: { composition, gaze, states: [], ageModifier } }
+        let perCharacterSettings = {};
+
+        // ===== UI State (V3 Story Mode) =====
+        let currentProjectId = null;
+        let currentProject = null;
+        let editingProjectId = null;
+        let openPageId = null; // Currently open accordion page
+
+        // ===== UI State (V4) =====
+        let currentOutputFormat = 'standard'; // standard, simple-jp, natural
+        let strictSourceMode = false;
+
+        // ===== Tab Navigation (V2) =====
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+            // Load data for specific tabs
+            if (tabName === 'generator') {
+                renderGeneratorHub();
+            } else if (tabName === 'story') {
+                loadProjectList();
+            } else if (tabName === 'database') {
+                loadCharacterList();
+                loadSituationList();
+                loadActionList();
+            } else if (tabName === 'settings') {
+                loadSettings();
+            }
+        }
+
+        function switchDBSubtab(subtab) {
+            currentDBSubtab = subtab;
+
+            // Update subtab buttons
+            document.querySelectorAll('.db-subtab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.subtab === subtab);
+            });
+
+            // Update subtab content
+            document.querySelectorAll('.db-subtab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${subtab}-subtab`).classList.remove('hidden');
+        }
+
+        // ===== Mode Switching (V2) =====
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Update mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Show/hide duo options
+            if (mode === 'duo') {
+                document.getElementById('duo-options').classList.remove('hidden');
+            } else {
+                document.getElementById('duo-options').classList.add('hidden');
+            }
+
+            // Update UI based on mode
+            if (mode === 'solo') {
+                // Solo mode: clear multiple selections, keep only first
+                if (selectedCharacters.length > 1) {
+                    selectedCharacters = [selectedCharacters[0]];
+                }
+            }
+
+            renderCharacterSelector();
+            updatePromptPreview();
+        }
+
+        // ===== Character Selection (V2) =====
+        async function renderCharacterSelector() {
+            const container = document.getElementById('character-selector');
+            const characters = await getAllCharacters();
+
+            if (characters.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 col-span-full py-8">キャラクターを登録してください</div>';
+                return;
+            }
+
+            container.innerHTML = characters.map(char => {
+                const isSelected = selectedCharacters.some(c => c.id === char.id);
+                const thumbnail = char.images && char.images[0] ? char.images[0] : '';
+
+                return `
+                    <div class="character-card card p-2 text-center ${isSelected ? 'selected' : ''}" data-id="${char.id}">
+                        ${thumbnail ? `<img src="${thumbnail}" alt="${char.name}" class="w-full h-20 object-cover rounded mb-2">` : '<div class="w-full h-20 bg-gray-200 rounded mb-2 flex items-center justify-center text-3xl">👤</div>'}
+                        <div class="text-sm font-semibold text-gray-800 truncate">${char.name}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update reference images
+            updateReferenceImages();
+        }
+
+        async function toggleCharacterSelection(characterId) {
+            const characters = await getAllCharacters();
+            const character = characters.find(c => c.id === parseInt(characterId));
+
+            if (!character) return;
+
+            const index = selectedCharacters.findIndex(c => c.id === character.id);
+
+            if (index >= 0) {
+                // Deselect
+                selectedCharacters.splice(index, 1);
+                // V8: Remove per-character settings
+                delete perCharacterSettings[character.id];
+            } else {
+                // Select
+                if (currentMode === 'solo') {
+                    // Solo mode: replace selection
+                    selectedCharacters = [character];
+                    // V8: Clear other settings
+                    perCharacterSettings = {};
+                } else {
+                    // Duo/Comic mode: add selection
+                    selectedCharacters.push(character);
+                }
+                // V8: Initialize settings for new character
+                if (!perCharacterSettings[character.id]) {
+                    perCharacterSettings[character.id] = {
+                        composition: '',
+                        gaze: '',
+                        states: [],
+                        ageModifier: ''
+                    };
+                }
+            }
+
+            renderCharacterSelector();
+            renderPerCharacterAdvancedSettings(); // V8
+            updatePromptPreview();
+        }
+
+        function updateReferenceImages() {
+            const container = document.getElementById('reference-images');
+            const allImages = [];
+
+            selectedCharacters.forEach(char => {
+                if (char && char.images) {
+                    allImages.push(...char.images.map(img => ({ char: char.name, data: img })));
+                }
+            });
+
+            if (allImages.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 col-span-3 py-8 text-sm">キャラを選択すると表示されます</div>';
+                return;
+            }
+
+            container.innerHTML = allImages.slice(0, 10).map((img, index) => `
+                <div class="relative group">
+                    <img src="${img.data}" alt="${img.char}" class="image-preview" data-index="${index}">
+                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center opacity-0 group-hover:opacity-100 transition">
+                        ${img.char}
+                    </div>
+                </div>
+            `).join('');
+
+            selectedImages = allImages;
+        }
+
+        // V8: Render per-character advanced settings
+        function renderPerCharacterAdvancedSettings() {
+            const container = document.getElementById('per-character-advanced-settings');
+
+            if (selectedCharacters.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = selectedCharacters.map(char => {
+                const settings = perCharacterSettings[char.id] || { composition: '', gaze: '', states: [], ageModifier: '' };
+
+                return `
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <span>⚙️ ${char.name} - 詳細設定</span>
+                            <span class="icon">▼</span>
+                        </div>
+                        <div class="accordion-content collapsed">
+                            <div class="space-y-4">
+                                <!-- Composition -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">📐 構図 (Composition)</label>
+                                    <select class="char-composition w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" data-char-id="${char.id}">
+                                        <option value="">指定なし</option>
+                                        <option value="face only" ${settings.composition === 'face only' ? 'selected' : ''}>😶 顔だけ</option>
+                                        <option value="face focus, close-up" ${settings.composition === 'face focus, close-up' ? 'selected' : ''}>😀 顔アップ</option>
+                                        <option value="upper body, bust shot" ${settings.composition === 'upper body, bust shot' ? 'selected' : ''}>👔 バストアップ</option>
+                                        <option value="upper body" ${settings.composition === 'upper body' ? 'selected' : ''}>🙋 上半身</option>
+                                        <option value="cowboy shot" ${settings.composition === 'cowboy shot' ? 'selected' : ''}>🤠 太ももから上</option>
+                                        <option value="full body" ${settings.composition === 'full body' ? 'selected' : ''}>🧍 全身</option>
+                                    </select>
+                                </div>
+
+                                <!-- Gaze -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">👁️ 視線 (Gaze)</label>
+                                    <select class="char-gaze w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" data-char-id="${char.id}">
+                                        <option value="">指定なし</option>
+                                        <option value="looking at viewer" ${settings.gaze === 'looking at viewer' ? 'selected' : ''}>📷 カメラ目線</option>
+                                        <option value="looking up" ${settings.gaze === 'looking up' ? 'selected' : ''}>🔺 上目遣い</option>
+                                        <option value="looking down" ${settings.gaze === 'looking down' ? 'selected' : ''}>🔻 見下ろす</option>
+                                        <option value="looking away, averted eyes" ${settings.gaze === 'looking away, averted eyes' ? 'selected' : ''}>↔️ 目を逸らす</option>
+                                        <option value="looking back" ${settings.gaze === 'looking back' ? 'selected' : ''}>🔙 後ろを見る</option>
+                                    </select>
+                                </div>
+
+                                <!-- States -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">💫 状態 (State)</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="heavy breathing, panting" ${settings.states.includes('heavy breathing, panting') ? 'checked' : ''}>
+                                            <span>😮‍💨 息荒い</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="blush, embarrassed" ${settings.states.includes('blush, embarrassed') ? 'checked' : ''}>
+                                            <span>😊 赤面</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="teary eyes, watery eyes" ${settings.states.includes('teary eyes, watery eyes') ? 'checked' : ''}>
+                                            <span>🥺 涙目</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="fang, yaeba" ${settings.states.includes('fang, yaeba') ? 'checked' : ''}>
+                                            <span>😁 八重歯</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="half-closed eyes, jitome" ${settings.states.includes('half-closed eyes, jitome') ? 'checked' : ''}>
+                                            <span>😑 ジト目</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="empty eyes, highlight off" ${settings.states.includes('empty eyes, highlight off') ? 'checked' : ''}>
+                                            <span>⚫ ハイライトオフ</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="yandere" ${settings.states.includes('yandere') ? 'checked' : ''}>
+                                            <span>🔪 ヤンデレ</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="angry, angry face" ${settings.states.includes('angry, angry face') ? 'checked' : ''}>
+                                            <span>😠 怒り</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Age Modifier -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">👶 年齢修正 (Age)</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                            <input type="radio" name="age-${char.id}" class="char-age w-4 h-4" data-char-id="${char.id}" value="toddler, very young" ${settings.ageModifier === 'toddler, very young' ? 'checked' : ''}>
+                                            <span>👶 幼児</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                            <input type="radio" name="age-${char.id}" class="char-age w-4 h-4" data-char-id="${char.id}" value="child, young" ${settings.ageModifier === 'child, young' ? 'checked' : ''}>
+                                            <span>🧒 少年・少女</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                            <input type="radio" name="age-${char.id}" class="char-age w-4 h-4" data-char-id="${char.id}" value="" ${settings.ageModifier === '' ? 'checked' : ''}>
+                                            <span>🧑 青年 (Default)</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                            <input type="radio" name="age-${char.id}" class="char-age w-4 h-4" data-char-id="${char.id}" value="middle-aged, mature" ${settings.ageModifier === 'middle-aged, mature' ? 'checked' : ''}>
+                                            <span>🧓 年配</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                            <input type="radio" name="age-${char.id}" class="char-age w-4 h-4" data-char-id="${char.id}" value="old, elderly" ${settings.ageModifier === 'old, elderly' ? 'checked' : ''}>
+                                            <span>👴 老人</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add event listeners for per-character settings
+            attachPerCharacterSettingsListeners();
+        }
+
+        // V8: Attach event listeners for per-character advanced settings
+        function attachPerCharacterSettingsListeners() {
+            // Composition selectors
+            document.querySelectorAll('.char-composition').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    if (perCharacterSettings[charId]) {
+                        perCharacterSettings[charId].composition = e.target.value;
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // Gaze selectors
+            document.querySelectorAll('.char-gaze').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    if (perCharacterSettings[charId]) {
+                        perCharacterSettings[charId].gaze = e.target.value;
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // State checkboxes
+            document.querySelectorAll('.char-state').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const state = e.target.dataset.state;
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].states.includes(state)) {
+                                perCharacterSettings[charId].states.push(state);
+                            }
+                        } else {
+                            perCharacterSettings[charId].states = perCharacterSettings[charId].states.filter(s => s !== state);
+                        }
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // Age modifier radios
+            document.querySelectorAll('.char-age').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    if (perCharacterSettings[charId]) {
+                        perCharacterSettings[charId].ageModifier = e.target.value;
+                        updatePromptPreview();
+                    }
+                });
+            });
+        }
+
+        // ===== Situation Selection (V2) =====
+        async function renderSituationSelector() {
+            const container = document.getElementById('situation-selector');
+            const situations = await getAllSituations();
+
+            let html = '<button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedSituation ? ' active' : '') + '" data-id="">指定なし</button>';
+
+            html += situations.map(situation => `
+                <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedSituation && selectedSituation.id === situation.id ? 'active' : ''}" data-id="${situation.id}">
+                    ${situation.name}
+                </button>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function selectSituation(situationId) {
+            if (!situationId) {
+                selectedSituation = null;
+            } else {
+                const situations = await getAllSituations();
+                selectedSituation = situations.find(s => s.id === parseInt(situationId)) || null;
+            }
+
+            renderSituationSelector();
+            updatePromptPreview();
+        }
+
+        // ===== Action Selection (V2) =====
+        async function renderActionSelector() {
+            const container = document.getElementById('action-selector');
+            const actions = await getAllActions();
+
+            let html = '<button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedAction ? ' active' : '') + '" data-id="">指定なし</button>';
+
+            html += actions.map(action => `
+                <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedAction && selectedAction.id === action.id ? 'active' : ''}" data-id="${action.id}">
+                    ${action.name}
+                </button>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        async function selectAction(actionId) {
+            if (!actionId) {
+                selectedAction = null;
+            } else {
+                const actions = await getAllActions();
+                selectedAction = actions.find(a => a.id === parseInt(actionId)) || null;
+            }
+
+            renderActionSelector();
+            updatePromptPreview();
+        }
+
+        // ===== Generator Hub Init (V2) =====
+        async function renderGeneratorHub() {
+            await renderCharacterSelector();
+            await renderSituationSelector();
+            await renderActionSelector();
+            updatePromptPreview();
+        }
+
+        // ===== Character Prompt Builder (V4) =====
+        function buildCharacterPrompt(character, format) {
+            if (!character.builder) return ''; // Fallback for old data
+
+            const b = character.builder;
+            const parts = [];
+
+            if (format === 'standard') {
+                // Standard Tags: 1boy/1girl, androgynous, angel, long hair, light brown, blue eyes...
+                if (b.gender === 'male') parts.push('1boy');
+                else if (b.gender === 'female') parts.push('1girl');
+                else if (b.gender === 'androgynous') parts.push('1boy', 'androgynous');
+
+                if (b.species?.en) parts.push(b.species.en);
+                if (b.hair?.en) parts.push(b.hair.en);
+                if (b.hairColor?.en) parts.push(b.hairColor.en + ' hair');
+                if (b.eyes?.en) parts.push(b.eyes.en);
+                if (b.clothes?.en) parts.push(b.clothes.en);
+                if (b.accessories?.en) parts.push(b.accessories.en);
+
+                return parts.filter(p => p).join(', ');
+
+            } else if (format === 'simple-jp') {
+                // Simple JP: 男の子, 中性的, 天使, ロングヘア, 薄茶色の髪...
+                if (b.gender === 'male') parts.push('男の子');
+                else if (b.gender === 'female') parts.push('女の子');
+                else if (b.gender === 'androgynous') parts.push('男の子', '中性的');
+
+                if (b.species?.jp) parts.push(b.species.jp);
+                if (b.hair?.jp) parts.push(b.hair.jp);
+                if (b.hairColor?.jp) parts.push(b.hairColor.jp + 'の髪');
+                if (b.eyes?.jp) parts.push(b.eyes.jp);
+                if (b.clothes?.jp) parts.push(b.clothes.jp);
+                if (b.accessories?.jp) parts.push(b.accessories.jp);
+
+                return parts.filter(p => p).join(', ');
+
+            } else if (format === 'natural') {
+                // Natural Language: An androgynous angel boy with long light brown hair and blue eyes, wearing military uniform...
+                let desc = '';
+
+                // Gender + Species
+                const article = (b.gender === 'androgynous') ? 'An' : 'A';
+                const genderTerm = (b.gender === 'male') ? 'boy' : (b.gender === 'female') ? 'girl' : 'person';
+                const speciesTerm = b.species?.en || '';
+
+                if (b.gender === 'androgynous' && speciesTerm) {
+                    desc = `${article} ${b.gender} ${speciesTerm} ${genderTerm}`;
+                } else if (speciesTerm) {
+                    desc = `${article} ${speciesTerm} ${genderTerm}`;
+                } else {
+                    desc = `${article} ${genderTerm}`;
+                }
+
+                // Hair
+                const hairParts = [];
+                if (b.hair?.en) hairParts.push(b.hair.en.toLowerCase());
+                if (b.hairColor?.en) hairParts.push(b.hairColor.en.toLowerCase());
+                if (hairParts.length > 0) {
+                    desc += ` with ${hairParts.join(' ')} hair`;
+                }
+
+                // Eyes
+                if (b.eyes?.en) {
+                    desc += ` and ${b.eyes.en.toLowerCase()}`;
+                }
+
+                // Clothes
+                if (b.clothes?.en) {
+                    desc += `, wearing ${b.clothes.en.toLowerCase()}`;
+                }
+
+                // Accessories
+                if (b.accessories?.en) {
+                    desc += ` and ${b.accessories.en.toLowerCase()}`;
+                }
+
+                return desc;
+            }
+
+            return '';
+        }
+
+        // ===== Prompt Generation (V4) =====
+        async function generatePrompt() {
+            const format = document.getElementById('output-format')?.value || 'standard';
+            const strictSource = document.getElementById('strict-source-mode')?.checked || false;
+            const includePositive = document.getElementById('quality-positive-toggle').checked;
+            const includeNegative = document.getElementById('quality-negative-toggle').checked;
+
+            const positivePreset = includePositive ? await getSetting('positivePreset', 'masterpiece, best quality, ultra detailed, 8k resolution') : '';
+            const negativePreset = includeNegative ? await getSetting('negativePreset', 'low quality, worst quality, blurry, bad anatomy, watermark') : '';
+
+            const customAction = document.getElementById('custom-action-input')?.value.trim();
+
+            // Build structured sections
+            const sections = [];
+
+            // V4.1: Strict Source Mode (multiple characters)
+            if (strictSource && selectedCharacters.length > 0) {
+                const charNames = selectedCharacters.map(c => `「${c.name}」`).join('と');
+                const actionText = customAction || selectedAction?.name || '画像';
+                const instruction = `添付画像ファイルを唯一のキャラクターソースとして、${charNames}の「${actionText}」画像を生成してください。`;
+                sections.push(instruction);
+            }
+
+            // Header: Quality preset
+            if (positivePreset) {
+                sections.push(positivePreset);
+            }
+
+            // Character sections with V8 per-character advanced settings
+            if (selectedCharacters.length > 0) {
+                selectedCharacters.forEach(char => {
+                    const charTags = buildCharacterPrompt(char, format);
+
+                    // V8: Add per-character advanced settings
+                    const advancedParts = [];
+                    const settings = perCharacterSettings[char.id];
+                    if (settings) {
+                        if (settings.composition) advancedParts.push(settings.composition);
+                        if (settings.gaze) advancedParts.push(settings.gaze);
+                        if (settings.states && settings.states.length > 0) {
+                            advancedParts.push(...settings.states);
+                        }
+                        if (settings.ageModifier) advancedParts.push(settings.ageModifier);
+                    }
+
+                    // V8: Add character physical attributes from database
+                    if (char.age) advancedParts.push(char.age);
+                    if (char.height) advancedParts.push(char.height);
+                    if (char.bodyType) advancedParts.push(char.bodyType);
+                    if (char.customBodyType) advancedParts.push(char.customBodyType);
+
+                    // Build final character section
+                    if (charTags) {
+                        let charSection = `[Character: ${char.name}]\n${charTags}`;
+                        if (advancedParts.length > 0) {
+                            charSection += `\n${advancedParts.join(', ')}`;
+                        }
+                        sections.push(charSection);
+                    }
+                });
+            }
+
+            // Scene/Action section with group tags
+            const sceneActionParts = [];
+
+            // Add group tags based on mode and character count
+            if (selectedCharacters.length > 0) {
+                if (currentMode === 'solo') {
+                    if (format === 'standard') sceneActionParts.push('solo');
+                    else if (format === 'simple-jp') sceneActionParts.push('単独');
+                } else if (currentMode === 'duo' || currentMode === 'comic') {
+                    const count = selectedCharacters.length;
+                    if (count > 1) {
+                        // Count gender for group tags
+                        const genders = selectedCharacters.map(c => c.builder?.gender || 'androgynous');
+                        const maleCount = genders.filter(g => g === 'male').length;
+                        const femaleCount = genders.filter(g => g === 'female').length;
+
+                        if (format === 'standard') {
+                            if (maleCount + femaleCount === 0 || maleCount === count) {
+                                sceneActionParts.push(`${count}boys`);
+                            } else if (femaleCount === count) {
+                                sceneActionParts.push(`${count}girls`);
+                            } else {
+                                sceneActionParts.push('multiple_girls', 'multiple_boys');
+                            }
+                        } else if (format === 'simple-jp') {
+                            sceneActionParts.push(`${count}人`);
+                        }
+                    }
+                }
+
+                // Comic mode style tags
+                if (currentMode === 'comic') {
+                    if (format === 'standard') sceneActionParts.push('comic', 'monochrome');
+                    else if (format === 'simple-jp') sceneActionParts.push('漫画', 'モノクロ');
+                    else if (format === 'natural') sceneActionParts.push('comic-style monochrome illustration');
+                }
+            }
+
+            // Add situation and action tags
+            if (selectedSituation) sceneActionParts.push(selectedSituation.tags);
+            if (selectedAction) sceneActionParts.push(selectedAction.tags);
+            if (customAction) sceneActionParts.push(customAction);
+
+            // V6: Props
+            if (selectedProp) sceneActionParts.push(selectedProp.prompt);
+            const customProps = document.getElementById('custom-props-input')?.value.trim();
+            if (customProps) sceneActionParts.push(customProps);
+
+            // V6: Time of Day
+            const timeOfDay = document.getElementById('time-of-day-selector')?.value;
+            if (timeOfDay) sceneActionParts.push(timeOfDay);
+
+            if (sceneActionParts.length > 0) {
+                const sceneSection = `[Scene/Action]\n${sceneActionParts.join(', ')}`;
+                sections.push(sceneSection);
+            }
+
+            // V6: Atmosphere Settings
+            const atmosphereParts = [];
+
+            // V6: Art Styles (Multiple)
+            if (selectedStyles.length > 0) {
+                const stylePrompts = selectedStyles.map(styleId => {
+                    const style = styles.find(s => s.id === styleId);
+                    return style ? style.prompt : '';
+                }).filter(p => p);
+                if (stylePrompts.length > 0) {
+                    atmosphereParts.push(...stylePrompts);
+                }
+            }
+
+            // V6: Lineart Strength
+            const lineartStrength = document.querySelector('input[name="lineart-strength"]:checked')?.value;
+            if (lineartStrength) {
+                atmosphereParts.push(lineartStrength);
+            }
+
+            // Color Mode
+            const colorMode = document.querySelector('input[name="color-mode"]:checked')?.value;
+            if (colorMode && colorMode !== 'none') {
+                const color1 = document.getElementById('color-1')?.value || '#FF0000';
+                const colorName1 = hexToColorName(color1);
+
+                if (colorMode === 'monotone') {
+                    atmosphereParts.push(`monotone, ${colorName1} theme`);
+                } else if (colorMode === 'two-tone') {
+                    const color2 = document.getElementById('color-2')?.value || '#0000FF';
+                    const colorName2 = hexToColorName(color2);
+                    atmosphereParts.push(`two-tone, ${colorName1} and ${colorName2}`);
+                } else if (colorMode === 'background') {
+                    atmosphereParts.push(`${colorName1} background`);
+                } else if (colorMode === 'theme') {
+                    atmosphereParts.push(`theme color is ${color1}`);
+                }
+            }
+
+            // Aspect Ratio
+            const aspectRatio = document.getElementById('aspect-ratio-selector')?.value;
+            if (aspectRatio) {
+                atmosphereParts.push(`aspect ratio ${aspectRatio}`);
+            }
+
+            if (atmosphereParts.length > 0) {
+                const atmosphereSection = `[Atmosphere]\n${atmosphereParts.join(', ')}`;
+                sections.push(atmosphereSection);
+            }
+
+            // Combine all sections with double line breaks
+            let positivePrompt = sections.filter(s => s.trim()).join(',\n\n');
+
+            // Add negative prompt
+            const fullPrompt = negativePreset
+                ? `${positivePrompt}\n\nNegative prompt: ${negativePreset}`
+                : positivePrompt;
+
+            return fullPrompt;
+        }
+
+        function updatePromptPreview() {
+            generatePrompt().then(prompt => {
+                document.getElementById('prompt-preview').textContent = prompt || 'プロンプトがここに表示されます';
+            });
+        }
+
+        async function copyPrompt() {
+            try {
+                const prompt = await generatePrompt();
+
+                if (!prompt.trim()) {
+                    alert('プロンプトが空です。キャラクターを選択してください。');
+                    return;
+                }
+
+                // Try clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(prompt);
+                } else {
+                    // Fallback for older browsers
+                    const textarea = document.createElement('textarea');
+                    textarea.value = prompt;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                }
+
+                const btn = document.getElementById('copy-prompt-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ コピーしました！';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+
+                // Show preview in console for debugging
+                console.log('コピーされたプロンプト:', prompt);
+            } catch (err) {
+                console.error('コピーエラー:', err);
+                alert('クリップボードへのコピーに失敗しました。\nエラー: ' + err.message + '\n\nHTTPS接続を使用しているか確認してください。');
+            }
+        }
+
+        function saveImages() {
+            if (selectedImages.length === 0) {
+                alert('保存する画像がありません');
+                return;
+            }
+
+            selectedImages.forEach((img, index) => {
+                const link = document.createElement('a');
+                link.href = img.data;
+                link.download = `${img.char}_${index + 1}.png`;
+                link.click();
+            });
+        }
+
+        // ===== Character List =====
+        async function loadCharacterList() {
+            const characters = await getAllCharacters();
+            const container = document.getElementById('character-list');
+
+            if (characters.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">キャラクターが登録されていません</div>';
+                return;
+            }
+
+            container.innerHTML = characters.map(char => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${char.name}</h3>
+                        <div class="space-x-2">
+                            <button class="edit-character text-blue-500 hover:text-blue-700" data-id="${char.id}">✏️</button>
+                            <button class="delete-character text-red-500 hover:text-red-700" data-id="${char.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2"><strong>タグ:</strong> ${char.trigger}</p>
+                    <p class="text-sm text-gray-600 mb-3 line-clamp-2">${char.appearance}</p>
+                    ${char.images && char.images.length > 0 ? `
+                        <div class="flex gap-2 overflow-x-auto">
+                            ${char.images.slice(0, 3).map(img => `
+                                <img src="${img}" alt="${char.name}" class="w-16 h-16 object-cover rounded">
+                            `).join('')}
+                            ${char.images.length > 3 ? `<div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-sm text-gray-600">+${char.images.length - 3}</div>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // ===== Character Form =====
+        function openCharacterModal(characterId = null) {
+            editingCharacterId = characterId;
+            const modal = document.getElementById('character-modal');
+            const form = document.getElementById('character-form');
+            const title = document.getElementById('modal-title');
+
+            if (characterId) {
+                title.textContent = 'キャラクター編集';
+                getAllCharacters().then(characters => {
+                    const character = characters.find(c => c.id === characterId);
+                    if (character) {
+                        document.getElementById('character-id').value = character.id;
+                        document.getElementById('character-name').value = character.name;
+
+                        // V4 Builder fields
+                        if (character.builder) {
+                            const b = character.builder;
+                            document.querySelector(`input[name="gender"][value="${b.gender || 'androgynous'}"]`).checked = true;
+                            document.getElementById('species-jp').value = b.species?.jp || '';
+                            document.getElementById('species-en').value = b.species?.en || '';
+                            document.getElementById('hair-jp').value = b.hair?.jp || '';
+                            document.getElementById('hair-en').value = b.hair?.en || '';
+                            document.getElementById('haircolor-jp').value = b.hairColor?.jp || '';
+                            document.getElementById('haircolor-en').value = b.hairColor?.en || '';
+                            document.getElementById('eyes-jp').value = b.eyes?.jp || '';
+                            document.getElementById('eyes-en').value = b.eyes?.en || '';
+                            document.getElementById('clothes-jp').value = b.clothes?.jp || '';
+                            document.getElementById('clothes-en').value = b.clothes?.en || '';
+                            document.getElementById('accessories-jp').value = b.accessories?.jp || '';
+                            document.getElementById('accessories-en').value = b.accessories?.en || '';
+                        }
+
+                        // V8: Physical attributes
+                        document.getElementById('character-age').value = character.age || '';
+                        document.getElementById('character-height').value = character.height || '';
+                        if (character.bodyType) {
+                            const bodyTypeRadio = document.querySelector(`input[name="body-type"][value="${character.bodyType}"]`);
+                            if (bodyTypeRadio) {
+                                bodyTypeRadio.checked = true;
+                            }
+                        }
+                        document.getElementById('custom-body-type').value = character.customBodyType || '';
+
+                        const previewContainer = document.getElementById('image-preview-container');
+                        if (character.images && character.images.length > 0) {
+                            previewContainer.innerHTML = character.images.map((img, index) => `
+                                <div class="relative">
+                                    <img src="${img}" class="w-full h-20 object-cover rounded">
+                                    <button type="button" class="remove-preview-image absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 text-xs" data-index="${index}">✕</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                });
+            } else {
+                title.textContent = 'キャラクター登録';
+                form.reset();
+                document.getElementById('character-id').value = '';
+                document.getElementById('image-preview-container').innerHTML = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('show');
+            });
+            editingCharacterId = null;
+        }
+
+        async function handleImageSelection(files) {
+            const previewContainer = document.getElementById('image-preview-container');
+            const existingPreviews = previewContainer.querySelectorAll('img').length;
+
+            for (let i = 0; i < files.length; i++) {
+                if (existingPreviews + i >= 10) {
+                    alert('画像は最大10枚まで登録できます');
+                    break;
+                }
+
+                const file = files[i];
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const preview = document.createElement('div');
+                    preview.className = 'relative';
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" class="w-full h-20 object-cover rounded">
+                        <button type="button" class="remove-preview-image absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 text-xs">✕</button>
+                    `;
+                    previewContainer.appendChild(preview);
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function saveCharacter(event) {
+            event.preventDefault();
+
+            const characterData = {
+                name: document.getElementById('character-name').value,
+                builder: {
+                    gender: document.querySelector('input[name="gender"]:checked')?.value || 'androgynous',
+                    species: {
+                        jp: document.getElementById('species-jp').value,
+                        en: document.getElementById('species-en').value
+                    },
+                    hair: {
+                        jp: document.getElementById('hair-jp').value,
+                        en: document.getElementById('hair-en').value
+                    },
+                    hairColor: {
+                        jp: document.getElementById('haircolor-jp').value,
+                        en: document.getElementById('haircolor-en').value
+                    },
+                    eyes: {
+                        jp: document.getElementById('eyes-jp').value,
+                        en: document.getElementById('eyes-en').value
+                    },
+                    clothes: {
+                        jp: document.getElementById('clothes-jp').value,
+                        en: document.getElementById('clothes-en').value
+                    },
+                    accessories: {
+                        jp: document.getElementById('accessories-jp').value,
+                        en: document.getElementById('accessories-en').value
+                    }
+                },
+                // V8: Physical attributes
+                age: document.getElementById('character-age').value,
+                height: document.getElementById('character-height').value,
+                bodyType: document.querySelector('input[name="body-type"]:checked')?.value || '',
+                customBodyType: document.getElementById('custom-body-type').value,
+                images: Array.from(document.getElementById('image-preview-container').querySelectorAll('img'))
+                    .map(img => img.src)
+            };
+
+            if (editingCharacterId) {
+                characterData.id = editingCharacterId;
+                await updateCharacter(characterData);
+            } else {
+                await addCharacter(characterData);
+            }
+
+            closeModal();
+            loadCharacterList();
+            renderGeneratorHub();
+        }
+
+        async function deleteCharacterConfirm(id) {
+            if (!confirm('このキャラクターを削除しますか？')) return;
+
+            await deleteCharacter(id);
+            loadCharacterList();
+            renderGeneratorHub();
+        }
+
+        // ===== Situation List (V2) =====
+        async function loadSituationList() {
+            const situations = await getAllSituations();
+            const container = document.getElementById('situation-list');
+
+            if (situations.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">シチュエーションが登録されていません</div>';
+                return;
+            }
+
+            container.innerHTML = situations.map(situation => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${situation.name}</h3>
+                        <div class="space-x-2">
+                            <button class="edit-situation text-blue-500 hover:text-blue-700" data-id="${situation.id}">✏️</button>
+                            <button class="delete-situation text-red-500 hover:text-red-700" data-id="${situation.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${situation.tags}</p>
+                </div>
+            `).join('');
+        }
+
+        function openSituationModal(situationId = null) {
+            editingSituationId = situationId;
+            const modal = document.getElementById('situation-modal');
+            const title = document.getElementById('situation-modal-title');
+
+            if (situationId) {
+                title.textContent = 'シチュエーション編集';
+                getAllSituations().then(situations => {
+                    const situation = situations.find(s => s.id === situationId);
+                    if (situation) {
+                        document.getElementById('situation-id').value = situation.id;
+                        document.getElementById('situation-name').value = situation.name;
+                        document.getElementById('situation-tags').value = situation.tags;
+                    }
+                });
+            } else {
+                title.textContent = 'シチュエーション登録';
+                document.getElementById('situation-form').reset();
+                document.getElementById('situation-id').value = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        async function saveSituation(event) {
+            event.preventDefault();
+
+            const situationData = {
+                name: document.getElementById('situation-name').value,
+                tags: document.getElementById('situation-tags').value
+            };
+
+            if (editingSituationId) {
+                situationData.id = editingSituationId;
+                await updateSituation(situationData);
+            } else {
+                await addSituation(situationData);
+            }
+
+            closeModal();
+            loadSituationList();
+            renderSituationSelector();
+        }
+
+        async function deleteSituationConfirm(id) {
+            if (!confirm('このシチュエーションを削除しますか？')) return;
+
+            await deleteSituation(id);
+            loadSituationList();
+            renderSituationSelector();
+        }
+
+        // ===== Action List (V2) =====
+        async function loadActionList() {
+            const actions = await getAllActions();
+            const container = document.getElementById('action-list');
+
+            if (actions.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">アクションが登録されていません</div>';
+                return;
+            }
+
+            container.innerHTML = actions.map(action => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${action.name}</h3>
+                        <div class="space-x-2">
+                            <button class="edit-action text-blue-500 hover:text-blue-700" data-id="${action.id}">✏️</button>
+                            <button class="delete-action text-red-500 hover:text-red-700" data-id="${action.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${action.tags}</p>
+                </div>
+            `).join('');
+        }
+
+        function openActionModal(actionId = null) {
+            editingActionId = actionId;
+            const modal = document.getElementById('action-modal');
+            const title = document.getElementById('action-modal-title');
+
+            if (actionId) {
+                title.textContent = 'アクション編集';
+                getAllActions().then(actions => {
+                    const action = actions.find(a => a.id === actionId);
+                    if (action) {
+                        document.getElementById('action-id').value = action.id;
+                        document.getElementById('action-name').value = action.name;
+                        document.getElementById('action-tags').value = action.tags;
+                    }
+                });
+            } else {
+                title.textContent = 'アクション登録';
+                document.getElementById('action-form').reset();
+                document.getElementById('action-id').value = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        async function saveAction(event) {
+            event.preventDefault();
+
+            const actionData = {
+                name: document.getElementById('action-name').value,
+                tags: document.getElementById('action-tags').value
+            };
+
+            if (editingActionId) {
+                actionData.id = editingActionId;
+                await updateAction(actionData);
+            } else {
+                await addAction(actionData);
+            }
+
+            closeModal();
+            loadActionList();
+            renderActionSelector();
+        }
+
+        async function deleteActionConfirm(id) {
+            if (!confirm('このアクションを削除しますか？')) return;
+
+            await deleteAction(id);
+            loadActionList();
+            renderActionSelector();
+        }
+
+        // ===== Style Management (V5) =====
+        let editingStyleId = null;
+
+        async function loadStyleList() {
+            const styles = await getAllStyles();
+            const container = document.getElementById('style-list');
+
+            if (styles.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">スタイルが登録されていません</div>';
+                return;
+            }
+
+            container.innerHTML = styles.map(style => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${style.name}</h3>
+                        <div class="space-x-2">
+                            <button class="edit-style text-blue-500 hover:text-blue-700" data-id="${style.id}">✏️</button>
+                            <button class="delete-style text-red-500 hover:text-red-700" data-id="${style.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${style.prompt}</p>
+                </div>
+            `).join('');
+        }
+
+        function openStyleModal(styleId = null) {
+            editingStyleId = styleId;
+            const modal = document.getElementById('style-modal');
+            const title = document.getElementById('style-modal-title');
+
+            if (styleId) {
+                title.textContent = 'スタイル編集';
+                getAllStyles().then(styles => {
+                    const style = styles.find(s => s.id === styleId);
+                    if (style) {
+                        document.getElementById('style-id').value = style.id;
+                        document.getElementById('style-name').value = style.name;
+                        document.getElementById('style-prompt').value = style.prompt;
+                    }
+                });
+            } else {
+                title.textContent = 'スタイル登録';
+                document.getElementById('style-form').reset();
+                document.getElementById('style-id').value = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        async function saveStyle(event) {
+            event.preventDefault();
+
+            const styleData = {
+                name: document.getElementById('style-name').value,
+                prompt: document.getElementById('style-prompt').value
+            };
+
+            if (editingStyleId) {
+                styleData.id = editingStyleId;
+                await updateStyle(styleData);
+            } else {
+                await addStyle(styleData);
+            }
+
+            closeModal();
+            loadStyleList();
+            loadStyleSelector();
+        }
+
+        async function deleteStyleConfirm(id) {
+            if (!confirm('このスタイルを削除しますか？')) return;
+
+            await deleteStyle(id);
+            loadStyleList();
+            loadStyleCheckboxes();
+        }
+
+        // ===== Props Management (V6) =====
+        let editingPropId = null;
+        let props = [];
+        let selectedProp = null;
+
+        async function loadPropsList() {
+            const allProps = await getAllProps();
+            const container = document.getElementById('props-list');
+
+            if (allProps.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">小物が登録されていません</div>';
+                return;
+            }
+
+            container.innerHTML = allProps.map(prop => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-gray-800">${prop.name}</h3>
+                        <div class="space-x-2">
+                            <button class="edit-prop text-blue-500 hover:text-blue-700" data-id="${prop.id}">✏️</button>
+                            <button class="delete-prop text-red-500 hover:text-red-700" data-id="${prop.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${prop.prompt}</p>
+                </div>
+            `).join('');
+        }
+
+        function openPropsModal(propId = null) {
+            editingPropId = propId;
+            const modal = document.getElementById('props-modal');
+            const title = document.getElementById('props-modal-title');
+
+            if (propId) {
+                title.textContent = '小物編集';
+                getAllProps().then(allProps => {
+                    const prop = allProps.find(p => p.id === propId);
+                    if (prop) {
+                        document.getElementById('prop-id').value = prop.id;
+                        document.getElementById('prop-name').value = prop.name;
+                        document.getElementById('prop-prompt').value = prop.prompt;
+                    }
+                });
+            } else {
+                title.textContent = '小物登録';
+                document.getElementById('props-form').reset();
+                document.getElementById('prop-id').value = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        async function saveProp(event) {
+            event.preventDefault();
+
+            const propData = {
+                name: document.getElementById('prop-name').value,
+                prompt: document.getElementById('prop-prompt').value
+            };
+
+            if (editingPropId) {
+                propData.id = editingPropId;
+                await updateProp(propData);
+            } else {
+                await addProp(propData);
+            }
+
+            closeModal();
+            loadPropsList();
+            renderPropsSelector();
+        }
+
+        async function deletePropConfirm(id) {
+            if (!confirm('この小物を削除しますか？')) return;
+
+            await deleteProp(id);
+            loadPropsList();
+            renderPropsSelector();
+        }
+
+        async function renderPropsSelector() {
+            props = await getAllProps();
+            const container = document.getElementById('props-selector');
+
+            let html = '<button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">指定なし</button>';
+
+            props.forEach(prop => {
+                const activeClass = selectedProp?.id === prop.id ? 'active' : '';
+                html += `<button class="props-btn ${activeClass} p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="${prop.id}">${prop.name}</button>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function selectProp(id) {
+            if (!id) {
+                selectedProp = null;
+            } else {
+                selectedProp = props.find(p => p.id == id);
+            }
+
+            document.querySelectorAll('.props-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const activeBtn = document.querySelector(`.props-btn[data-id="${id}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            updatePromptPreview();
+        }
+
+        // ===== Project Management (V3) =====
+        async function loadProjectList() {
+            const projects = await getAllProjects();
+            const container = document.getElementById('project-list');
+
+            if (projects.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12">プロジェクトがありません<br>「➕ 新規プロジェクト」から作成してください</div>';
+                return;
+            }
+
+            container.innerHTML = projects.map(project => `
+                <div class="card p-4 cursor-pointer hover:shadow-lg transition project-card" data-id="${project.id}">
+                    <h3 class="font-bold text-lg text-gray-800 mb-2">${project.title}</h3>
+                    <p class="text-sm text-gray-600 line-clamp-3 mb-3">${project.plot || 'プロットなし'}</p>
+                    <div class="text-xs text-gray-400">作成日: ${new Date(project.createdAt).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+
+            // Show project list view
+            document.getElementById('project-list-view').classList.remove('hidden');
+            document.getElementById('project-detail-view').classList.add('hidden');
+        }
+
+        async function openProject(projectId) {
+            currentProjectId = projectId;
+            currentProject = await getProject(projectId);
+
+            // Update UI
+            document.getElementById('project-title-display').textContent = currentProject.title;
+            document.getElementById('project-plot-display').textContent = currentProject.plot || 'プロットの説明がありません';
+
+            // Load style presets
+            document.getElementById('style-monochrome').checked = currentProject.styleMonochrome || false;
+            document.getElementById('style-fullcolor').checked = currentProject.styleFullColor || false;
+            document.getElementById('style-4koma').checked = currentProject.style4Koma || false;
+
+            // Load pages
+            await loadPages(projectId);
+
+            // Switch views
+            document.getElementById('project-list-view').classList.add('hidden');
+            document.getElementById('project-detail-view').classList.remove('hidden');
+        }
+
+        function openProjectModal(projectId = null) {
+            editingProjectId = projectId;
+            const modal = document.getElementById('project-modal');
+            const title = document.getElementById('project-modal-title');
+
+            if (projectId) {
+                title.textContent = 'プロジェクト編集';
+                getProject(projectId).then(project => {
+                    if (project) {
+                        document.getElementById('project-id').value = project.id;
+                        document.getElementById('project-title').value = project.title;
+                        document.getElementById('project-plot').value = project.plot || '';
+                    }
+                });
+            } else {
+                title.textContent = 'プロジェクト作成';
+                document.getElementById('project-form').reset();
+                document.getElementById('project-id').value = '';
+            }
+
+            modal.classList.add('show');
+        }
+
+        async function saveProject(event) {
+            event.preventDefault();
+
+            const projectData = {
+                title: document.getElementById('project-title').value,
+                plot: document.getElementById('project-plot').value
+            };
+
+            if (editingProjectId) {
+                projectData.id = editingProjectId;
+                await updateProject(projectData);
+            } else {
+                const newId = await addProject(projectData);
+                currentProjectId = newId;
+            }
+
+            closeModal();
+            loadProjectList();
+        }
+
+        async function deleteProjectConfirm() {
+            if (!confirm('このプロジェクトと全てのページを削除しますか？')) return;
+
+            // Delete all pages first
+            const pages = await getPagesByProject(currentProjectId);
+            for (const page of pages) {
+                await deletePage(page.id);
+            }
+
+            await deleteProject(currentProjectId);
+            currentProjectId = null;
+            loadProjectList();
+        }
+
+        async function updateProjectStyles() {
+            if (!currentProject) return;
+
+            currentProject.styleMonochrome = document.getElementById('style-monochrome').checked;
+            currentProject.styleFullColor = document.getElementById('style-fullcolor').checked;
+            currentProject.style4Koma = document.getElementById('style-4koma').checked;
+
+            await updateProject(currentProject);
+            loadPages(currentProjectId); // Reload pages to update prompts
+        }
+
+        // ===== Page Management (V3) =====
+        async function loadPages(projectId) {
+            const pages = await getPagesByProject(projectId);
+            const container = document.getElementById('pages-container');
+
+            if (pages.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">ページがありません<br>「➕ ページ追加」から作成してください</div>';
+                return;
+            }
+
+            container.innerHTML = pages.map((page, index) => `
+                <div class="card p-4 page-accordion" data-page-id="${page.id}">
+                    <div class="flex justify-between items-center cursor-pointer page-header" data-page-id="${page.id}">
+                        <h4 class="font-bold text-gray-800">📄 Page ${index + 1}</h4>
+                        <div class="space-x-2 flex items-center">
+                            <button class="delete-page text-red-500 hover:text-red-700 text-sm" data-page-id="${page.id}">🗑️</button>
+                            <span class="toggle-icon text-gray-400">▼</span>
+                        </div>
+                    </div>
+
+                    <div class="page-content mt-4 ${openPageId === page.id ? '' : 'hidden'}" data-page-id="${page.id}">
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-600 mb-2">ページメモ</label>
+                            <textarea class="page-memo w-full px-3 py-2 border rounded-lg text-sm" rows="3" data-page-id="${page.id}">${page.memo || ''}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-600 mb-2">プロンプトプレビュー</label>
+                            <div class="page-prompt-preview bg-gray-50 p-3 rounded text-xs font-mono whitespace-pre-wrap">${generatePagePrompt(page)}</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-600 mb-2">キャラクター選択</label>
+                            <div class="page-character-selector flex flex-wrap gap-2" data-page-id="${page.id}">
+                                ${renderPageCharacterSelector(page)}
+                            </div>
+                        </div>
+
+                        <!-- V8: Panel Configuration -->
+                        <div class="mb-4 border-t pt-4">
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-600 mb-2">📐 1ページあたりのコマ数</label>
+                                <select class="panels-per-page w-full px-3 py-2 border rounded-lg text-sm" data-page-id="${page.id}">
+                                    <option value="1" ${(page.panelsPerPage || 1) === 1 ? 'selected' : ''}>1コマ（1枚）</option>
+                                    <option value="2" ${page.panelsPerPage === 2 ? 'selected' : ''}>2コマ</option>
+                                    <option value="3" ${page.panelsPerPage === 3 ? 'selected' : ''}>3コマ</option>
+                                    <option value="4" ${page.panelsPerPage === 4 ? 'selected' : ''}>4コマ</option>
+                                    <option value="6" ${page.panelsPerPage === 6 ? 'selected' : ''}>6コマ</option>
+                                </select>
+                            </div>
+
+                            <div class="page-panels-container space-y-3" data-page-id="${page.id}">
+                                ${renderPanelConfigs(page)}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-600 mb-1">場所</label>
+                                <select class="page-situation w-full px-2 py-1 border rounded text-sm" data-page-id="${page.id}">
+                                    <option value="">指定なし</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-600 mb-1">行動</label>
+                                <select class="page-action w-full px-2 py-1 border rounded text-sm" data-page-id="${page.id}">
+                                    <option value="">指定なし</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <textarea class="page-custom-action w-full px-3 py-2 border rounded-lg text-sm mt-2" rows="2" placeholder="カスタム行動..." data-page-id="${page.id}">${page.customAction || ''}</textarea>
+
+                        <button class="copy-page-prompt btn-primary text-white px-4 py-2 rounded-lg w-full mt-3 text-sm" data-page-id="${page.id}">
+                            📋 このページのプロンプトをコピー
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Populate situation and action selects
+            const situations = await getAllSituations();
+            const actions = await getAllActions();
+
+            pages.forEach(page => {
+                const situationSelect = container.querySelector(`.page-situation[data-page-id="${page.id}"]`);
+                const actionSelect = container.querySelector(`.page-action[data-page-id="${page.id}"]`);
+
+                situations.forEach(sit => {
+                    const option = document.createElement('option');
+                    option.value = sit.id;
+                    option.textContent = sit.name;
+                    if (page.situationId === sit.id) option.selected = true;
+                    situationSelect.appendChild(option);
+                });
+
+                actions.forEach(act => {
+                    const option = document.createElement('option');
+                    option.value = act.id;
+                    option.textContent = act.name;
+                    if (page.actionId === act.id) option.selected = true;
+                    actionSelect.appendChild(option);
+                });
+            });
+        }
+
+        function renderPageCharacterSelector(page) {
+            // Simple character checkbox list
+            const selectedIds = page.characterIds || [];
+            return ''; // Will be populated dynamically
+        }
+
+        // V8: Render panel configurations for a page
+        function renderPanelConfigs(page) {
+            const panelCount = page.panelsPerPage || 1;
+            const panels = page.panels || [];
+
+            // Ensure panels array matches panelCount
+            while (panels.length < panelCount) {
+                panels.push({ characterNames: [], composition: '', isBackgroundOnly: false, customDescription: '' });
+            }
+
+            return Array.from({ length: panelCount }, (_, i) => {
+                const panel = panels[i] || { characterNames: [], composition: '', isBackgroundOnly: false, customDescription: '' };
+
+                return `
+                    <div class="border rounded-lg p-3 bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <h5 class="font-semibold text-gray-700 text-sm">🎬 コマ ${i + 1}</h5>
+                            <label class="flex items-center text-xs cursor-pointer">
+                                <input type="checkbox" class="panel-bg-only mr-1" data-page-id="${page.id}" data-panel-index="${i}" ${panel.isBackgroundOnly ? 'checked' : ''}>
+                                <span>背景のみ</span>
+                            </label>
+                        </div>
+
+                        ${!panel.isBackgroundOnly ? `
+                            <div class="mb-2">
+                                <label class="block text-xs text-gray-600 mb-1">キャラクター名（複数可）</label>
+                                <input type="text" class="panel-characters w-full px-2 py-1 border rounded text-xs"
+                                    data-page-id="${page.id}" data-panel-index="${i}"
+                                    value="${(panel.characterNames || []).join(', ')}"
+                                    placeholder="例：カミル, リン">
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="block text-xs text-gray-600 mb-1">構図</label>
+                                <select class="panel-composition w-full px-2 py-1 border rounded text-xs"
+                                    data-page-id="${page.id}" data-panel-index="${i}">
+                                    <option value="">指定なし</option>
+                                    <option value="face only" ${panel.composition === 'face only' ? 'selected' : ''}>顔だけ</option>
+                                    <option value="face focus, close-up" ${panel.composition === 'face focus, close-up' ? 'selected' : ''}>顔アップ</option>
+                                    <option value="upper body, bust shot" ${panel.composition === 'upper body, bust shot' ? 'selected' : ''}>バストアップ</option>
+                                    <option value="upper body" ${panel.composition === 'upper body' ? 'selected' : ''}>上半身</option>
+                                    <option value="cowboy shot" ${panel.composition === 'cowboy shot' ? 'selected' : ''}>太ももから上</option>
+                                    <option value="full body" ${panel.composition === 'full body' ? 'selected' : ''}>全身</option>
+                                </select>
+                            </div>
+                        ` : ''}
+
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">カスタム説明</label>
+                            <input type="text" class="panel-custom w-full px-2 py-1 border rounded text-xs"
+                                data-page-id="${page.id}" data-panel-index="${i}"
+                                value="${panel.customDescription || ''}"
+                                placeholder="例：夕焼けの背景、効果線">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generatePagePrompt(page) {
+            let parts = [];
+
+            // Add style tags
+            if (currentProject) {
+                if (currentProject.styleMonochrome) parts.push('monochrome, greyscale, comic');
+                else if (currentProject.styleFullColor) parts.push('full color, comic');
+                else if (currentProject.style4Koma) parts.push('4koma, comic');
+            }
+
+            // Character, situation, action will be added here
+            if (page.promptCache) return page.promptCache;
+
+            return parts.join(', ') || 'プロンプトを生成中...';
+        }
+
+        async function addPageToProject() {
+            if (!currentProjectId) return;
+
+            const pages = await getPagesByProject(currentProjectId);
+            const newPage = {
+                projectId: currentProjectId,
+                order: pages.length,
+                memo: '',
+                characterIds: [],
+                situationId: null,
+                actionId: null,
+                customAction: '',
+                // V8: Panel configuration
+                panelsPerPage: 1,
+                panels: [{ characterNames: [], composition: '', isBackgroundOnly: false, customDescription: '' }]
+            };
+
+            await addPage(newPage);
+            loadPages(currentProjectId);
+        }
+
+        async function deletePageConfirm(pageId) {
+            if (!confirm('このページを削除しますか？')) return;
+
+            await deletePage(pageId);
+            loadPages(currentProjectId);
+        }
+
+        async function updatePageData(pageId, field, value) {
+            const pages = await getPagesByProject(currentProjectId);
+            const page = pages.find(p => p.id === pageId);
+            if (!page) return;
+
+            page[field] = value;
+            await updatePage(page);
+        }
+
+        // V8: Update panels per page and regenerate panel configs
+        async function updatePanelsPerPage(pageId, panelCount) {
+            const pages = await getPagesByProject(currentProjectId);
+            const page = pages.find(p => p.id === pageId);
+            if (!page) return;
+
+            page.panelsPerPage = panelCount;
+
+            // Initialize panels array if needed
+            if (!page.panels) page.panels = [];
+
+            // Adjust panels array to match new count
+            while (page.panels.length < panelCount) {
+                page.panels.push({ characterNames: [], composition: '', isBackgroundOnly: false, customDescription: '' });
+            }
+            if (page.panels.length > panelCount) {
+                page.panels = page.panels.slice(0, panelCount);
+            }
+
+            await updatePage(page);
+
+            // Re-render the panel configs
+            const container = document.querySelector(`.page-panels-container[data-page-id="${pageId}"]`);
+            if (container) {
+                container.innerHTML = renderPanelConfigs(page);
+            }
+        }
+
+        // V8: Update individual panel data
+        async function updatePanelData(pageId, panelIndex, field, value) {
+            const pages = await getPagesByProject(currentProjectId);
+            const page = pages.find(p => p.id === pageId);
+            if (!page) return;
+
+            if (!page.panels) page.panels = [];
+            if (!page.panels[panelIndex]) {
+                page.panels[panelIndex] = { characterNames: [], composition: '', isBackgroundOnly: false, customDescription: '' };
+            }
+
+            page.panels[panelIndex][field] = value;
+
+            // If background only is toggled, re-render the panel
+            if (field === 'isBackgroundOnly') {
+                await updatePage(page);
+                const container = document.querySelector(`.page-panels-container[data-page-id="${pageId}"]`);
+                if (container) {
+                    container.innerHTML = renderPanelConfigs(page);
+                }
+            } else {
+                await updatePage(page);
+            }
+        }
+
+        function togglePageAccordion(pageId) {
+            const content = document.querySelector(`.page-content[data-page-id="${pageId}"]`);
+            const icon = document.querySelector(`.page-header[data-page-id="${pageId}"] .toggle-icon`);
+
+            if (content.classList.contains('hidden')) {
+                // Close all other pages
+                document.querySelectorAll('.page-content').forEach(c => c.classList.add('hidden'));
+                document.querySelectorAll('.toggle-icon').forEach(i => i.textContent = '▼');
+
+                // Open this page
+                content.classList.remove('hidden');
+                icon.textContent = '▲';
+                openPageId = pageId;
+            } else {
+                content.classList.add('hidden');
+                icon.textContent = '▼';
+                openPageId = null;
+            }
+        }
+
+        // ===== Settings =====
+        async function loadSettings() {
+            const positivePreset = await getSetting('positivePreset', 'masterpiece, best quality, ultra detailed, 8k resolution');
+            const negativePreset = await getSetting('negativePreset', 'low quality, worst quality, blurry, bad anatomy, watermark');
+
+            document.getElementById('positive-preset').value = positivePreset;
+            document.getElementById('negative-preset').value = negativePreset;
+        }
+
+        async function saveSettings() {
+            const positivePreset = document.getElementById('positive-preset').value;
+            const negativePreset = document.getElementById('negative-preset').value;
+
+            await saveSetting('positivePreset', positivePreset);
+            await saveSetting('negativePreset', negativePreset);
+
+            const btn = document.getElementById('save-presets-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '✅ 保存しました！';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        // ===== Import/Export (V2) =====
+        async function exportJSON() {
+            const characters = await getAllCharacters();
+            const situations = await getAllSituations();
+            const actions = await getAllActions();
+            const positivePreset = await getSetting('positivePreset', '');
+            const negativePreset = await getSetting('negativePreset', '');
+
+            const data = {
+                version: 2,
+                characters,
+                situations,
+                actions,
+                settings: {
+                    positivePreset,
+                    negativePreset
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `nanobanana-v2-backup-${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+
+                    if (!data.version || !data.characters) {
+                        throw new Error('Invalid JSON format');
+                    }
+
+                    let message = `${data.characters.length}件のキャラクター`;
+                    if (data.situations) message += `, ${data.situations.length}件のシチュエーション`;
+                    if (data.actions) message += `, ${data.actions.length}件のアクション`;
+                    message += 'をインポートします。よろしいですか？';
+
+                    if (!confirm(message)) {
+                        return;
+                    }
+
+                    // Clear existing data
+                    const characters = await getAllCharacters();
+                    for (const char of characters) {
+                        await deleteCharacter(char.id);
+                    }
+
+                    const situations = await getAllSituations();
+                    for (const sit of situations) {
+                        await deleteSituation(sit.id);
+                    }
+
+                    const actions = await getAllActions();
+                    for (const act of actions) {
+                        await deleteAction(act.id);
+                    }
+
+                    // Import characters
+                    for (const char of data.characters) {
+                        delete char.id;
+                        await addCharacter(char);
+                    }
+
+                    // Import situations (V2)
+                    if (data.situations) {
+                        for (const sit of data.situations) {
+                            delete sit.id;
+                            await addSituation(sit);
+                        }
+                    }
+
+                    // Import actions (V2)
+                    if (data.actions) {
+                        for (const act of data.actions) {
+                            delete act.id;
+                            await addAction(act);
+                        }
+                    }
+
+                    // Import settings
+                    if (data.settings) {
+                        await saveSetting('positivePreset', data.settings.positivePreset || '');
+                        await saveSetting('negativePreset', data.settings.negativePreset || '');
+                    }
+
+                    alert('インポートが完了しました');
+                    loadCharacterList();
+                    loadSituationList();
+                    loadActionList();
+                    renderGeneratorHub();
+                } catch (err) {
+                    alert('インポートに失敗しました: ' + err.message);
+                }
+            };
+
+            input.click();
+        }
+
+        // ===== Accordion Functions (V5) =====
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.icon');
+
+            // Toggle collapsed class
+            header.classList.toggle('collapsed');
+            content.classList.toggle('collapsed');
+        }
+
+        // ===== V5 Atmosphere Functions =====
+        let selectedStyles = []; // V6: Multiple styles
+        let styles = [];
+
+        async function loadStyleCheckboxes() {
+            styles = await getAllStyles();
+            const container = document.getElementById('art-style-checkboxes');
+
+            if (styles.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-400">スタイルを登録してください</div>';
+                return;
+            }
+
+            container.innerHTML = styles.map(style => `
+                <label class="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input type="checkbox" class="style-checkbox w-4 h-4" data-id="${style.id}">
+                    <span class="text-sm">${style.name}</span>
+                </label>
+            `).join('');
+
+            // Add event listeners to checkboxes
+            container.querySelectorAll('.style-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const styleId = parseInt(e.target.dataset.id);
+                    if (e.target.checked) {
+                        if (!selectedStyles.includes(styleId)) {
+                            selectedStyles.push(styleId);
+                        }
+                    } else {
+                        selectedStyles = selectedStyles.filter(id => id !== styleId);
+                    }
+                    updatePromptPreview();
+                });
+            });
+        }
+
+        function updateColorMode() {
+            const mode = document.querySelector('input[name="color-mode"]:checked')?.value;
+            const color2Row = document.getElementById('color-2-row');
+            const colorPickerContainer = document.getElementById('color-picker-container');
+
+            if (mode === 'two-tone') {
+                color2Row.classList.remove('hidden');
+            } else {
+                color2Row.classList.add('hidden');
+            }
+
+            if (mode === 'none') {
+                colorPickerContainer.classList.add('hidden');
+            } else {
+                colorPickerContainer.classList.remove('hidden');
+            }
+        }
+
+        function updateColorHex(colorInputId, hexSpanId) {
+            const colorInput = document.getElementById(colorInputId);
+            const hexSpan = document.getElementById(hexSpanId);
+            hexSpan.textContent = colorInput.value.toUpperCase();
+        }
+
+        function hexToColorName(hex) {
+            // Simple color name mapping for common colors
+            const colorMap = {
+                '#FF0000': 'red', '#00FF00': 'green', '#0000FF': 'blue',
+                '#FFFF00': 'yellow', '#FF00FF': 'magenta', '#00FFFF': 'cyan',
+                '#000000': 'black', '#FFFFFF': 'white', '#808080': 'gray',
+                '#FFA500': 'orange', '#800080': 'purple', '#FFC0CB': 'pink',
+                '#A52A2A': 'brown', '#FFD700': 'gold', '#C0C0C0': 'silver'
+            };
+            return colorMap[hex.toUpperCase()] || hex;
+        }
+
+        // ===== Event Listeners (V2) =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initDB();
+
+            // Tab navigation
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // Database sub-tabs (V2)
+            document.querySelectorAll('.db-subtab').forEach(btn => {
+                btn.addEventListener('click', () => switchDBSubtab(btn.dataset.subtab));
+            });
+
+            // Mode selection (V2)
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            // Character selection (V2)
+            document.getElementById('character-selector').addEventListener('click', (e) => {
+                const card = e.target.closest('.character-card');
+                if (card) {
+                    toggleCharacterSelection(card.dataset.id);
+                }
+            });
+
+            // Situation selection (V2)
+            document.getElementById('situation-selector').addEventListener('click', (e) => {
+                if (e.target.classList.contains('situation-btn')) {
+                    selectSituation(e.target.dataset.id);
+                }
+            });
+
+            // Action selection (V2)
+            document.getElementById('action-selector').addEventListener('click', (e) => {
+                if (e.target.classList.contains('action-btn')) {
+                    selectAction(e.target.dataset.id);
+                }
+            });
+
+            // Custom action input (V2)
+            document.getElementById('custom-action-input').addEventListener('input', updatePromptPreview);
+
+            // Quality toggle (V2)
+            document.getElementById('quality-positive-toggle').addEventListener('change', updatePromptPreview);
+            document.getElementById('quality-negative-toggle').addEventListener('change', updatePromptPreview);
+            document.getElementById('auto-person-tags')?.addEventListener('change', updatePromptPreview);
+
+            // V4 controls
+            document.getElementById('output-format')?.addEventListener('change', updatePromptPreview);
+            document.getElementById('strict-source-mode')?.addEventListener('change', updatePromptPreview);
+
+            // V6 controls
+            document.getElementById('aspect-ratio-selector')?.addEventListener('change', updatePromptPreview);
+            document.getElementById('time-of-day-selector')?.addEventListener('change', updatePromptPreview);
+            document.getElementById('custom-props-input')?.addEventListener('input', updatePromptPreview);
+
+            // Props selector
+            document.getElementById('props-selector').addEventListener('click', (e) => {
+                if (e.target.classList.contains('props-btn')) {
+                    selectProp(e.target.dataset.id);
+                }
+            });
+
+            // Lineart strength radio buttons
+            document.querySelectorAll('input[name="lineart-strength"]').forEach(radio => {
+                radio.addEventListener('change', updatePromptPreview);
+            });
+
+            // V8: Per-character advanced settings event listeners are attached in attachPerCharacterSettingsListeners()
+
+            // Color mode radio buttons
+            document.querySelectorAll('input[name="color-mode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    updateColorMode();
+                    updatePromptPreview();
+                });
+            });
+
+            // Color pickers
+            document.getElementById('color-1')?.addEventListener('input', (e) => {
+                updateColorHex('color-1', 'color-1-hex');
+                updatePromptPreview();
+            });
+            document.getElementById('color-2')?.addEventListener('input', (e) => {
+                updateColorHex('color-2', 'color-2-hex');
+                updatePromptPreview();
+            });
+
+            // Copy & Save
+            document.getElementById('copy-prompt-btn').addEventListener('click', copyPrompt);
+            document.getElementById('save-images-btn').addEventListener('click', saveImages);
+
+            // Reference images
+            document.getElementById('reference-images').addEventListener('click', (e) => {
+                if (e.target.classList.contains('image-preview')) {
+                    const index = parseInt(e.target.dataset.index);
+                    const modal = document.getElementById('image-viewer-modal');
+                    document.getElementById('viewer-image').src = selectedImages[index].data;
+                    modal.classList.add('show');
+                }
+            });
+
+            // Character DB
+            document.getElementById('add-character-btn').addEventListener('click', () => openCharacterModal());
+            document.getElementById('import-json-btn').addEventListener('click', importJSON);
+            document.getElementById('export-json-btn').addEventListener('click', exportJSON);
+
+            document.getElementById('character-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-character')) {
+                    openCharacterModal(parseInt(e.target.dataset.id));
+                } else if (e.target.classList.contains('delete-character')) {
+                    deleteCharacterConfirm(parseInt(e.target.dataset.id));
+                }
+            });
+
+            // Situation DB (V2)
+            document.getElementById('add-situation-btn').addEventListener('click', () => openSituationModal());
+
+            document.getElementById('situation-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-situation')) {
+                    openSituationModal(parseInt(e.target.dataset.id));
+                } else if (e.target.classList.contains('delete-situation')) {
+                    deleteSituationConfirm(parseInt(e.target.dataset.id));
+                }
+            });
+
+            // Action DB (V2)
+            document.getElementById('add-action-btn').addEventListener('click', () => openActionModal());
+
+            document.getElementById('action-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-action')) {
+                    openActionModal(parseInt(e.target.dataset.id));
+                } else if (e.target.classList.contains('delete-action')) {
+                    deleteActionConfirm(parseInt(e.target.dataset.id));
+                }
+            });
+
+            // Character Form
+            document.getElementById('character-form').addEventListener('submit', saveCharacter);
+            document.getElementById('character-images').addEventListener('change', (e) => {
+                handleImageSelection(e.target.files);
+            });
+
+            document.getElementById('image-preview-container').addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-preview-image')) {
+                    e.target.parentElement.remove();
+                }
+            });
+
+            // Situation Form (V2)
+            document.getElementById('situation-form').addEventListener('submit', saveSituation);
+
+            // Action Form (V2)
+            document.getElementById('action-form').addEventListener('submit', saveAction);
+
+            // Style DB (V5)
+            document.getElementById('add-style-btn').addEventListener('click', () => openStyleModal());
+
+            document.getElementById('style-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-style')) {
+                    openStyleModal(parseInt(e.target.dataset.id));
+                } else if (e.target.classList.contains('delete-style')) {
+                    deleteStyleConfirm(parseInt(e.target.dataset.id));
+                }
+            });
+
+            // Style Form (V5)
+            document.getElementById('style-form').addEventListener('submit', saveStyle);
+
+            // Props DB (V6)
+            document.getElementById('add-prop-btn').addEventListener('click', () => openPropsModal());
+
+            document.getElementById('props-list').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-prop')) {
+                    openPropsModal(parseInt(e.target.dataset.id));
+                } else if (e.target.classList.contains('delete-prop')) {
+                    deletePropConfirm(parseInt(e.target.dataset.id));
+                }
+            });
+
+            // Props Form (V6)
+            document.getElementById('props-form').addEventListener('submit', saveProp);
+
+            // Story Mode (V3)
+            document.getElementById('add-project-btn').addEventListener('click', () => openProjectModal());
+            document.getElementById('project-form').addEventListener('submit', saveProject);
+            document.getElementById('back-to-projects').addEventListener('click', loadProjectList);
+            document.getElementById('edit-project-btn').addEventListener('click', () => openProjectModal(currentProjectId));
+            document.getElementById('delete-project-btn').addEventListener('click', deleteProjectConfirm);
+            document.getElementById('add-page-btn').addEventListener('click', addPageToProject);
+
+            // Project list click
+            document.getElementById('project-list').addEventListener('click', (e) => {
+                const card = e.target.closest('.project-card');
+                if (card) {
+                    openProject(parseInt(card.dataset.id));
+                }
+            });
+
+            // Style presets
+            document.querySelectorAll('.style-preset').forEach(checkbox => {
+                checkbox.addEventListener('change', updateProjectStyles);
+            });
+
+            // Pages container (delegation)
+            document.getElementById('pages-container').addEventListener('click', (e) => {
+                // Accordion toggle
+                if (e.target.closest('.page-header') && !e.target.classList.contains('delete-page')) {
+                    const pageId = parseInt(e.target.closest('.page-header').dataset.pageId);
+                    togglePageAccordion(pageId);
+                }
+
+                // Delete page
+                if (e.target.classList.contains('delete-page')) {
+                    e.stopPropagation();
+                    deletePageConfirm(parseInt(e.target.dataset.pageId));
+                }
+
+                // Copy page prompt
+                if (e.target.classList.contains('copy-page-prompt')) {
+                    const pageId = parseInt(e.target.dataset.pageId);
+                    // Copy logic here
+                    alert('ページプロンプトコピー機能は実装中です');
+                }
+            });
+
+            // Page data updates (delegation)
+            document.getElementById('pages-container').addEventListener('change', (e) => {
+                if (e.target.classList.contains('page-memo')) {
+                    updatePageData(parseInt(e.target.dataset.pageId), 'memo', e.target.value);
+                } else if (e.target.classList.contains('page-situation')) {
+                    updatePageData(parseInt(e.target.dataset.pageId), 'situationId', parseInt(e.target.value) || null);
+                } else if (e.target.classList.contains('page-action')) {
+                    updatePageData(parseInt(e.target.dataset.pageId), 'actionId', parseInt(e.target.value) || null);
+                }
+                // V8: Panels per page
+                else if (e.target.classList.contains('panels-per-page')) {
+                    updatePanelsPerPage(parseInt(e.target.dataset.pageId), parseInt(e.target.value));
+                }
+                // V8: Panel composition
+                else if (e.target.classList.contains('panel-composition')) {
+                    updatePanelData(parseInt(e.target.dataset.pageId), parseInt(e.target.dataset.panelIndex), 'composition', e.target.value);
+                }
+                // V8: Panel background only toggle
+                else if (e.target.classList.contains('panel-bg-only')) {
+                    updatePanelData(parseInt(e.target.dataset.pageId), parseInt(e.target.dataset.panelIndex), 'isBackgroundOnly', e.target.checked);
+                }
+            });
+
+            document.getElementById('pages-container').addEventListener('input', (e) => {
+                if (e.target.classList.contains('page-custom-action')) {
+                    updatePageData(parseInt(e.target.dataset.pageId), 'customAction', e.target.value);
+                }
+                // V8: Panel character names
+                else if (e.target.classList.contains('panel-characters')) {
+                    const names = e.target.value.split(',').map(n => n.trim()).filter(n => n);
+                    updatePanelData(parseInt(e.target.dataset.pageId), parseInt(e.target.dataset.panelIndex), 'characterNames', names);
+                }
+                // V8: Panel custom description
+                else if (e.target.classList.contains('panel-custom')) {
+                    updatePanelData(parseInt(e.target.dataset.pageId), parseInt(e.target.dataset.panelIndex), 'customDescription', e.target.value);
+                }
+            });
+
+            // Settings
+            document.getElementById('save-presets-btn').addEventListener('click', saveSettings);
+
+            // Modal close
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', closeModal);
+            });
+
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal();
+                });
+            });
+
+            // Initialize (V2)
+            await renderGeneratorHub();
+            loadSettings();
+
+            // Initialize V6
+            await loadStyleCheckboxes();
+            await loadStyleList();
+            await renderPropsSelector();
+            await loadPropsList();
+            updateColorMode(); // Initialize color picker visibility
+        });
+
+        // ===== PWA Service Worker =====
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    self.addEventListener('install', (event) => {
+                        self.skipWaiting();
+                    });
+
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(clients.claim());
+                    });
+
+                    self.addEventListener('fetch', (event) => {
+                        event.respondWith(
+                            caches.match(event.request).then((response) => {
+                                return response || fetch(event.request);
+                            })
+                        );
+                    });
+                `;
+
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+
+                navigator.serviceWorker.register(swUrl).then(() => {
+                    console.log('Service Worker registered');
+                }).catch((err) => {
+                    console.error('Service Worker registration failed:', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
