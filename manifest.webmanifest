@@ -1,0 +1,14 @@
+{
+  "name": "Nanobanana Linker",
+  "short_name": "Linker",
+  "description": "AI画像生成プロンプト管理ツール",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
