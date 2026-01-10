@@ -634,52 +634,74 @@
 
                 <!-- Project Detail View (Pages) -->
                 <div id="project-detail-view" class="hidden">
-                    <div class="card p-6 mb-6">
-                        <div class="flex justify-between items-center mb-4">
+                    <!-- Top Bar -->
+                    <div class="card p-4 mb-4">
+                        <div class="flex justify-between items-center">
                             <button id="back-to-projects" class="text-blue-500 hover:text-blue-700 font-semibold">
                                 ← プロジェクト一覧に戻る
                             </button>
                             <div class="space-x-2">
-                                <button id="edit-project-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                                <button id="edit-project-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition text-sm">
                                     ✏️ プロジェクト設定
                                 </button>
-                                <button id="delete-project-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                                <button id="delete-project-btn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition text-sm">
                                     🗑️ プロジェクト削除
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div id="project-info" class="mb-4">
-                            <h2 id="project-title-display" class="text-3xl font-bold text-gray-800 mb-2"></h2>
-                            <div id="project-plot-display" class="text-gray-600 whitespace-pre-wrap mb-4"></div>
+                    <!-- Comic Studio Layout: Left-Right Split -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <!-- Left Side: Plot & Settings (1/3 width on desktop, full width on mobile) -->
+                        <div class="lg:col-span-1">
+                            <div class="card p-6 sticky top-4">
+                                <div id="project-info">
+                                    <h2 id="project-title-display" class="text-2xl font-bold text-gray-800 mb-3"></h2>
 
-                            <!-- Style Presets -->
-                            <div class="flex flex-wrap gap-3 mb-4">
-                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
-                                    <input type="checkbox" id="style-monochrome" class="style-preset">
-                                    <label class="text-sm font-semibold">⬛ Monochrome Manga</label>
-                                </div>
-                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
-                                    <input type="checkbox" id="style-fullcolor" class="style-preset">
-                                    <label class="text-sm font-semibold">🎨 Full Color</label>
-                                </div>
-                                <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded">
-                                    <input type="checkbox" id="style-4koma" class="style-preset">
-                                    <label class="text-sm font-semibold">📄 4-Koma</label>
+                                    <div class="mb-4">
+                                        <h3 class="text-sm font-semibold text-gray-700 mb-2">📝 プロット・あらすじ</h3>
+                                        <div id="project-plot-display" class="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg max-h-64 overflow-y-auto"></div>
+                                    </div>
+
+                                    <!-- Style Presets -->
+                                    <div class="mb-4">
+                                        <h3 class="text-sm font-semibold text-gray-700 mb-2">🎨 画風プリセット</h3>
+                                        <div class="flex flex-wrap gap-2">
+                                            <div class="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
+                                                <input type="checkbox" id="style-monochrome" class="style-preset">
+                                                <label class="font-semibold cursor-pointer">⬛ Monochrome</label>
+                                            </div>
+                                            <div class="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
+                                                <input type="checkbox" id="style-fullcolor" class="style-preset">
+                                                <label class="font-semibold cursor-pointer">🎨 Full Color</label>
+                                            </div>
+                                            <div class="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
+                                                <input type="checkbox" id="style-4koma" class="style-preset">
+                                                <label class="font-semibold cursor-pointer">📄 4-Koma</label>
+                                            </div>
+                                            <div class="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded text-xs">
+                                                <input type="checkbox" id="style-webtoon" class="style-preset">
+                                                <label class="font-semibold cursor-pointer">📱 Webtoon</label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Pages -->
-                    <div class="card p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">📄 ページ管理</h3>
-                            <button id="add-page-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
-                                ➕ ページ追加
-                            </button>
+                        <!-- Right Side: Pages Timeline (2/3 width on desktop, full width on mobile) -->
+                        <div class="lg:col-span-2">
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold text-gray-800">📄 ページ管理 (タイムライン)</h3>
+                                    <button id="add-page-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                                        ➕ ページ追加
+                                    </button>
+                                </div>
+                                <div id="pages-container" class="space-y-4"></div>
+                            </div>
                         </div>
-                        <div id="pages-container" class="space-y-4"></div>
                     </div>
                 </div>
             </div>
@@ -3273,6 +3295,7 @@
             document.getElementById('style-monochrome').checked = currentProject.styleMonochrome || false;
             document.getElementById('style-fullcolor').checked = currentProject.styleFullColor || false;
             document.getElementById('style-4koma').checked = currentProject.style4Koma || false;
+            document.getElementById('style-webtoon').checked = currentProject.styleWebtoon || false;
 
             // Load pages
             await loadPages(projectId);
@@ -3345,6 +3368,7 @@
             currentProject.styleMonochrome = document.getElementById('style-monochrome').checked;
             currentProject.styleFullColor = document.getElementById('style-fullcolor').checked;
             currentProject.style4Koma = document.getElementById('style-4koma').checked;
+            currentProject.styleWebtoon = document.getElementById('style-webtoon').checked;
 
             await updateProject(currentProject);
             loadPages(currentProjectId); // Reload pages to update prompts
@@ -3361,9 +3385,12 @@
             }
 
             container.innerHTML = pages.map((page, index) => `
-                <div class="card p-4 page-accordion" data-page-id="${page.id}">
+                <div class="card p-4 page-accordion" data-page-id="${page.id}" data-order="${page.order}" draggable="true">
                     <div class="flex justify-between items-center cursor-pointer page-header" data-page-id="${page.id}">
-                        <h4 class="font-bold text-gray-800">📄 Page ${index + 1}</h4>
+                        <div class="flex items-center gap-2">
+                            <span class="drag-handle cursor-move text-gray-400 hover:text-gray-600">⋮⋮</span>
+                            <h4 class="font-bold text-gray-800">📄 Page ${index + 1}</h4>
+                        </div>
                         <div class="space-x-2 flex items-center">
                             <button class="delete-page text-red-500 hover:text-red-700 text-sm" data-page-id="${page.id}">🗑️</button>
                             <span class="toggle-icon text-gray-400">▼</span>
@@ -3377,8 +3404,13 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-semibold text-gray-600 mb-2">プロンプトプレビュー</label>
-                            <div class="page-prompt-preview bg-gray-50 p-3 rounded text-xs font-mono whitespace-pre-wrap">${generatePagePrompt(page)}</div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-semibold text-gray-600">プロンプトプレビュー</label>
+                                <button class="copy-page-prompt bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition" data-page-id="${page.id}">
+                                    📋 コピー
+                                </button>
+                            </div>
+                            <div class="page-prompt-preview bg-gray-50 p-3 rounded text-xs font-mono whitespace-pre-wrap" data-page-id="${page.id}">${generatePagePrompt(page)}</div>
                         </div>
 
                         <div class="mb-4">
@@ -3526,9 +3558,10 @@
 
             // Add style tags
             if (currentProject) {
-                if (currentProject.styleMonochrome) parts.push('monochrome, greyscale, comic');
-                else if (currentProject.styleFullColor) parts.push('full color, comic');
-                else if (currentProject.style4Koma) parts.push('4koma, comic');
+                if (currentProject.styleMonochrome) parts.push('monochrome, greyscale, screentone, comic, manga');
+                else if (currentProject.styleFullColor) parts.push('full color, comic, vibrant colors');
+                else if (currentProject.style4Koma) parts.push('4koma, comic, 4 panels');
+                else if (currentProject.styleWebtoon) parts.push('webtoon, full color, scrolling format');
             }
 
             // Character, situation, action will be added here
@@ -3572,6 +3605,28 @@
 
             page[field] = value;
             await updatePage(page);
+        }
+
+        // Reorder pages based on drag and drop
+        async function reorderPages(draggedPageId, targetPageId) {
+            const pages = await getPagesByProject(currentProjectId);
+            const draggedIndex = pages.findIndex(p => p.id === draggedPageId);
+            const targetIndex = pages.findIndex(p => p.id === targetPageId);
+
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // Remove dragged page and insert at target position
+            const [draggedPage] = pages.splice(draggedIndex, 1);
+            pages.splice(targetIndex, 0, draggedPage);
+
+            // Update order for all pages
+            for (let i = 0; i < pages.length; i++) {
+                pages[i].order = i;
+                await updatePage(pages[i]);
+            }
+
+            // Reload pages to reflect new order
+            await loadPages(currentProjectId);
         }
 
         // V8: Update panels per page and regenerate panel configs
@@ -4506,8 +4561,10 @@
 
             // Pages container (delegation)
             document.getElementById('pages-container').addEventListener('click', (e) => {
-                // Accordion toggle
-                if (e.target.closest('.page-header') && !e.target.classList.contains('delete-page')) {
+                // Accordion toggle (exclude delete button and drag handle)
+                if (e.target.closest('.page-header') &&
+                    !e.target.classList.contains('delete-page') &&
+                    !e.target.classList.contains('drag-handle')) {
                     const pageId = parseInt(e.target.closest('.page-header').dataset.pageId);
                     togglePageAccordion(pageId);
                 }
@@ -4520,9 +4577,27 @@
 
                 // Copy page prompt
                 if (e.target.classList.contains('copy-page-prompt')) {
+                    e.stopPropagation();
                     const pageId = parseInt(e.target.dataset.pageId);
-                    // Copy logic here
-                    alert('ページプロンプトコピー機能は実装中です');
+                    const promptElement = document.querySelector(`.page-prompt-preview[data-page-id="${pageId}"]`);
+                    if (promptElement) {
+                        const promptText = promptElement.textContent;
+                        navigator.clipboard.writeText(promptText).then(() => {
+                            // Show success feedback
+                            const btn = e.target;
+                            const originalText = btn.innerHTML;
+                            btn.innerHTML = '✓ コピー完了!';
+                            btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                            btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                            setTimeout(() => {
+                                btn.innerHTML = originalText;
+                                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                                btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                            }, 2000);
+                        }).catch(err => {
+                            alert('コピーに失敗しました: ' + err);
+                        });
+                    }
                 }
             });
 
@@ -4561,6 +4636,57 @@
                 // V8: Panel custom description
                 else if (e.target.classList.contains('panel-custom')) {
                     updatePanelData(parseInt(e.target.dataset.pageId), parseInt(e.target.dataset.panelIndex), 'customDescription', e.target.value);
+                }
+            });
+
+            // Drag and Drop for page reordering
+            let draggedPageElement = null;
+
+            document.getElementById('pages-container').addEventListener('dragstart', (e) => {
+                const pageAccordion = e.target.closest('.page-accordion');
+                if (pageAccordion) {
+                    draggedPageElement = pageAccordion;
+                    pageAccordion.classList.add('opacity-50');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', pageAccordion.innerHTML);
+                }
+            });
+
+            document.getElementById('pages-container').addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                const pageAccordion = e.target.closest('.page-accordion');
+                if (pageAccordion && pageAccordion !== draggedPageElement) {
+                    const container = document.getElementById('pages-container');
+                    const allPages = [...container.querySelectorAll('.page-accordion')];
+                    const draggedIndex = allPages.indexOf(draggedPageElement);
+                    const targetIndex = allPages.indexOf(pageAccordion);
+
+                    if (draggedIndex < targetIndex) {
+                        pageAccordion.after(draggedPageElement);
+                    } else {
+                        pageAccordion.before(draggedPageElement);
+                    }
+                }
+            });
+
+            document.getElementById('pages-container').addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (draggedPageElement) {
+                    const targetPageAccordion = e.target.closest('.page-accordion');
+                    if (targetPageAccordion && targetPageAccordion !== draggedPageElement) {
+                        const draggedPageId = parseInt(draggedPageElement.dataset.pageId);
+                        const targetPageId = parseInt(targetPageAccordion.dataset.pageId);
+                        reorderPages(draggedPageId, targetPageId);
+                    }
+                }
+            });
+
+            document.getElementById('pages-container').addEventListener('dragend', (e) => {
+                if (draggedPageElement) {
+                    draggedPageElement.classList.remove('opacity-50');
+                    draggedPageElement = null;
                 }
             });
 
