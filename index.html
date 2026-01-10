@@ -2330,6 +2330,53 @@
             updatePromptPreview();
         }
 
+        // V10: Toggle pin status
+        async function togglePin(id, type, currentlyPinned) {
+            const itemId = parseInt(id);
+
+            switch (type) {
+                case 'character':
+                    const characters = await getAllCharacters();
+                    const char = characters.find(c => c.id === itemId);
+                    if (char) {
+                        char.pinned = !currentlyPinned;
+                        await updateCharacter(char);
+                        await renderCharacterSelector();
+                    }
+                    break;
+
+                case 'situation':
+                    const situations = await getAllSituations();
+                    const sit = situations.find(s => s.id === itemId);
+                    if (sit) {
+                        sit.pinned = !currentlyPinned;
+                        await updateSituation(sit);
+                        await renderSituationSelector();
+                    }
+                    break;
+
+                case 'action':
+                    const actions = await getAllActions();
+                    const act = actions.find(a => a.id === itemId);
+                    if (act) {
+                        act.pinned = !currentlyPinned;
+                        await updateAction(act);
+                        await renderActionSelector();
+                    }
+                    break;
+
+                case 'prop':
+                    const props = await getAllProps();
+                    const prop = props.find(p => p.id === itemId);
+                    if (prop) {
+                        prop.pinned = !currentlyPinned;
+                        await updateProp(prop);
+                        await renderPropsSelector();
+                    }
+                    break;
+            }
+        }
+
         function updateReferenceImages() {
             const container = document.getElementById('reference-images');
             const allImages = [];
@@ -2391,7 +2438,7 @@
                             <span class="icon">▼</span>
                         </div>
                         <div class="accordion-content collapsed">
-                            <div class="space-y-4">
+                            <div class="space-y-4 max-h-96 overflow-y-auto p-2">
                                 <!-- Composition -->
                                 <div>
                                     <label class="block text-gray-700 font-semibold mb-2 text-sm">📐 構図 (Composition)</label>
@@ -4917,24 +4964,75 @@
 
             // Character selection (V2)
             document.getElementById('character-selector').addEventListener('click', (e) => {
+                // V10: Pin button
+                if (e.target.classList.contains('pin-btn')) {
+                    e.stopPropagation();
+                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
+                    return;
+                }
+
                 const card = e.target.closest('.character-card');
-                if (card) {
+                if (card && !e.target.classList.contains('pin-btn')) {
                     toggleCharacterSelection(card.dataset.id);
                 }
             });
 
+            // V10: Character sort buttons
+            document.getElementById('char-sort-asc')?.addEventListener('click', () => {
+                charSortOrder = 'asc';
+                renderCharacterSelector();
+            });
+            document.getElementById('char-sort-desc')?.addEventListener('click', () => {
+                charSortOrder = 'desc';
+                renderCharacterSelector();
+            });
+
             // Situation selection (V2)
             document.getElementById('situation-selector').addEventListener('click', (e) => {
+                // V10: Pin button
+                if (e.target.classList.contains('pin-btn-small')) {
+                    e.stopPropagation();
+                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
+                    return;
+                }
+
                 if (e.target.classList.contains('situation-btn')) {
                     selectSituation(e.target.dataset.id);
                 }
             });
 
+            // V10: Situation sort buttons
+            document.getElementById('situation-sort-asc')?.addEventListener('click', () => {
+                situationSortOrder = 'asc';
+                renderSituationSelector();
+            });
+            document.getElementById('situation-sort-desc')?.addEventListener('click', () => {
+                situationSortOrder = 'desc';
+                renderSituationSelector();
+            });
+
             // Action selection (V2)
             document.getElementById('action-selector').addEventListener('click', (e) => {
+                // V10: Pin button
+                if (e.target.classList.contains('pin-btn-small')) {
+                    e.stopPropagation();
+                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
+                    return;
+                }
+
                 if (e.target.classList.contains('action-btn')) {
                     selectAction(e.target.dataset.id);
                 }
+            });
+
+            // V10: Action sort buttons
+            document.getElementById('action-sort-asc')?.addEventListener('click', () => {
+                actionSortOrder = 'asc';
+                renderActionSelector();
+            });
+            document.getElementById('action-sort-desc')?.addEventListener('click', () => {
+                actionSortOrder = 'desc';
+                renderActionSelector();
             });
 
             // Custom action input (V2)
@@ -4956,9 +5054,26 @@
 
             // Props selector
             document.getElementById('props-selector').addEventListener('click', (e) => {
+                // V10: Pin button
+                if (e.target.classList.contains('pin-btn-small')) {
+                    e.stopPropagation();
+                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
+                    return;
+                }
+
                 if (e.target.classList.contains('props-btn')) {
                     selectProp(e.target.dataset.id);
                 }
+            });
+
+            // V10: Props sort buttons
+            document.getElementById('props-sort-asc')?.addEventListener('click', () => {
+                propsSortOrder = 'asc';
+                renderPropsSelector();
+            });
+            document.getElementById('props-sort-desc')?.addEventListener('click', () => {
+                propsSortOrder = 'desc';
+                renderPropsSelector();
             });
 
             // Lineart strength radio buttons
