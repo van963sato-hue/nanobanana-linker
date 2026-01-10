@@ -4110,7 +4110,12 @@
                 return;
             }
 
+            if (!confirm('現在のブラウザのデータで、クラウドを上書きしますか？')) {
+                return;
+            }
+
             try {
+                // すべてのデータを取得
                 const data = {
                     characters: await getAllCharacters(),
                     situations: await getAllSituations(),
@@ -4122,11 +4127,19 @@
                     timestamp: Date.now()
                 };
 
-                await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).set(data);
-                alert('クラウドへのアップロードが完了しました!');
+                // JSON文字列に変換（1つの巨大なJSON文字列として保存）
+                const jsonString = JSON.stringify(data);
+
+                // 1つのドキュメントのcontentフィールドに保存
+                await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).set({
+                    content: jsonString,
+                    updatedAt: new Date().toISOString()
+                });
+
+                alert('✅ クラウドへのアップロードが完了しました! (' + new Date().toLocaleTimeString() + ')');
             } catch (error) {
                 console.error('Upload error:', error);
-                alert('アップロードに失敗しました: ' + error.message);
+                alert('❌ アップロードに失敗しました: ' + error.message);
             }
         }
 
@@ -4141,16 +4154,19 @@
             }
 
             try {
-                const doc = await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).get();
+                const docSnapshot = await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).get();
 
-                if (!doc.exists) {
+                if (!docSnapshot.exists) {
                     alert('クラウドにバックアップが見つかりませんでした');
                     return;
                 }
 
-                const data = doc.data();
+                const docData = docSnapshot.data();
 
-                // Clear existing data first
+                // contentフィールドからJSON文字列を取得してパース
+                const data = JSON.parse(docData.content);
+
+                // 既存データを全クリア
                 const existingCharacters = await getAllCharacters();
                 for (const char of existingCharacters) {
                     await deleteCharacter(char.id);
@@ -4186,7 +4202,7 @@
                     await deleteHistory(hist.id);
                 }
 
-                // Restore data from cloud
+                // クラウドからのデータを復元
                 if (data.characters) {
                     for (const char of data.characters) {
                         delete char.id;
@@ -4230,11 +4246,11 @@
                     }
                 }
 
-                alert('クラウドからのダウンロードが完了しました!');
+                alert('✅ クラウドからのダウンロードが完了しました!');
                 location.reload();
             } catch (error) {
                 console.error('Download error:', error);
-                alert('ダウンロードに失敗しました: ' + error.message);
+                alert('❌ ダウンロードに失敗しました: ' + error.message);
             }
         }
 
