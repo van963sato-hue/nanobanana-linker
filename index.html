@@ -15,6 +15,11 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
@@ -242,34 +247,90 @@
             max-height: 0;
             padding: 0 1.5rem;
         }
+
+        /* V9: Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 2px solid #e5e7eb;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 4px;
+            color: #64748b;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .bottom-nav-item .icon {
+            font-size: 1.5rem;
+            margin-bottom: 2px;
+        }
+
+        .bottom-nav-item.active {
+            color: #3b82f6;
+        }
+
+        .bottom-nav-item:active {
+            transform: scale(0.95);
+        }
+
+        #app {
+            padding-bottom: 70px;
+        }
+
+        /* V9: Sync Button */
+        .sync-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .sync-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
     </style>
 </head>
 <body class="app-gradient min-h-screen">
     <!-- Main Container -->
     <div id="app" class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Header -->
-        <header class="text-center mb-8 fade-in">
-            <h1 class="text-4xl font-bold text-blue-600 mb-2">🍌 Nanobanana Linker</h1>
-            <p class="text-gray-600">AI画像生成プロンプト管理ツール</p>
+        <header class="mb-8 fade-in">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex-1"></div>
+                <div class="flex-1 text-center">
+                    <h1 class="text-4xl font-bold text-blue-600">🍌 Nanobanana Linker</h1>
+                </div>
+                <div class="flex-1 flex justify-end">
+                    <button id="sync-button" class="sync-btn flex items-center space-x-2">
+                        <span>☁</span>
+                        <span>Sync</span>
+                    </button>
+                </div>
+            </div>
+            <p class="text-gray-600 text-center">AI画像生成プロンプト管理ツール</p>
         </header>
 
-        <!-- Tab Navigation -->
-        <nav class="card mb-6 overflow-hidden">
-            <div class="flex border-b">
-                <button class="tab-button active flex-1" data-tab="generator">
-                    <span class="text-lg">🎨</span> Generator Hub
-                </button>
-                <button class="tab-button flex-1" data-tab="story">
-                    <span class="text-lg">📖</span> Story Mode
-                </button>
-                <button class="tab-button flex-1" data-tab="database">
-                    <span class="text-lg">👥</span> Database
-                </button>
-                <button class="tab-button flex-1" data-tab="settings">
-                    <span class="text-lg">⚙️</span> Settings
-                </button>
-            </div>
-        </nav>
 
         <!-- Tab Content -->
         <div id="tab-content">
@@ -300,9 +361,20 @@
                                 <span class="icon">▼</span>
                             </div>
                             <div class="accordion-content">
-                                <div id="character-selector" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                <div id="character-selector" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
                                     <div class="text-center text-gray-400 col-span-full py-8">
                                         キャラクターを登録してください
+                                    </div>
+                                </div>
+
+                                <!-- V9: Costume Selection -->
+                                <div id="costume-selection-section" class="mt-6 pt-6 border-t border-gray-200">
+                                    <h3 class="text-lg font-bold text-gray-800 mb-3">👗 衣装選択 (Costume)</h3>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-2">※選択すると、キャラ固有の衣装タグの代わりに、この衣装が適用されます</label>
+                                        <select id="costume-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">衣装を選択しない（キャラ固有の衣装を使用）</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -727,8 +799,79 @@
                     <div id="props-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
             </div>
+
+            <!-- Closet Tab (V9) -->
+            <div id="closet-tab" class="tab-content hidden">
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">👗 コスチューム管理 (Costume Closet)</h2>
+                        <button id="add-costume-btn" class="btn-primary text-white px-4 py-2 rounded-lg">
+                            ➕ コスチューム追加
+                        </button>
+                    </div>
+
+                    <div id="costume-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="text-center text-gray-400 col-span-full py-8">
+                            コスチュームを登録してください
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab (V9) -->
+            <div id="history-tab" class="tab-content hidden">
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📜 生成履歴 (History)</h2>
+                        <button id="clear-history-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                            🗑️ 全削除
+                        </button>
+                    </div>
+
+                    <div class="mb-4 flex space-x-4">
+                        <button id="show-all-history" class="px-4 py-2 border-2 border-blue-500 bg-blue-500 text-white rounded-lg font-semibold transition">
+                            すべて
+                        </button>
+                        <button id="show-favorites" class="px-4 py-2 border-2 border-gray-300 bg-white text-gray-700 rounded-lg font-semibold hover:border-blue-500 transition">
+                            ★お気に入り
+                        </button>
+                    </div>
+
+                    <div id="history-list" class="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin">
+                        <div class="text-center text-gray-400 py-8">
+                            生成履歴がありません
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Bottom Navigation (V9) -->
+    <nav class="bottom-nav">
+        <div class="flex">
+            <button class="bottom-nav-item active" data-tab="generator">
+                <span class="icon">🏠</span>
+                <span>Home</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="closet">
+                <span class="icon">👗</span>
+                <span>Closet</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="database">
+                <span class="icon">👥</span>
+                <span>Chara</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="history">
+                <span class="icon">📜</span>
+                <span>History</span>
+            </button>
+            <button class="bottom-nav-item" data-tab="settings">
+                <span class="icon">⚙</span>
+                <span>Settings</span>
+            </button>
+        </div>
+    </nav>
 
     <!-- Style Modal (V5) -->
     <div id="style-modal" class="modal">
@@ -1108,10 +1251,110 @@
         </div>
     </div>
 
+    <!-- Costume Modal (V9) -->
+    <div id="costume-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto scrollbar-thin">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800" id="costume-modal-title">コスチューム登録</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <form id="costume-form" class="space-y-4">
+                <input type="hidden" id="costume-id">
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">衣装名 (Name)</label>
+                    <input type="text" id="costume-name" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：学校制服、水着、パーティードレス">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">全身/セット服 (Full Set Outfit)</label>
+                    <textarea id="costume-fullset" rows="3"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="例：school uniform, white blouse, plaid skirt, red ribbon"></textarea>
+                    <p class="text-sm text-gray-500 mt-1">※セット服の場合はこちらのみ記入。上下別の場合は下の項目を使用。</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">トップス (Top)</label>
+                        <textarea id="costume-top" rows="2"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="例：white t-shirt, denim jacket"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">ボトムス (Bottom)</label>
+                        <textarea id="costume-bottom" rows="2"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="例：black pants, leather boots"></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">アクセサリー1 (Accessory A)</label>
+                        <input type="text" id="costume-acc-a"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="例：necklace, earrings">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">アクセサリー2 (Accessory B)</label>
+                        <input type="text" id="costume-acc-b"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="例：hat, glasses">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold">
+                    💾 保存
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Sync Modal (V9) -->
+    <div id="firebase-sync-modal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-800">☁ クラウド同期</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+
+            <div id="firebase-login-section">
+                <p class="text-gray-600 mb-4">Googleアカウントでログインして、データをクラウドに保存・復元できます。</p>
+                <button id="firebase-login-btn" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold mb-3">
+                    🔐 Googleでログイン
+                </button>
+            </div>
+
+            <div id="firebase-sync-section" class="hidden">
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-2">ログイン中: <span id="firebase-user-email" class="font-semibold"></span></p>
+                    <button id="firebase-logout-btn" class="text-sm text-red-500 hover:text-red-700">ログアウト</button>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="firebase-upload-btn" class="btn-primary w-full text-white px-6 py-3 rounded-lg font-semibold">
+                        ⬆️ クラウドへアップロード
+                    </button>
+                    <button id="firebase-download-btn" class="bg-green-500 hover:bg-green-600 w-full text-white px-6 py-3 rounded-lg font-semibold transition">
+                        ⬇️ クラウドからダウンロード
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-4">※ダウンロードすると、現在のデータが上書きされます。</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== IndexedDB Setup =====
         const DB_NAME = 'NanobananaLinkerDB';
-        const DB_VERSION = 6; // V8: Extended Character fields (age, height, bodyType)
+        const DB_VERSION = 7; // V9: Added Costumes and History stores
         let db;
 
         function initDB() {
@@ -1169,6 +1412,19 @@
                     if (!db.objectStoreNames.contains('props')) {
                         const propStore = db.createObjectStore('props', { keyPath: 'id', autoIncrement: true });
                         propStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // Costumes Store (V9)
+                    if (!db.objectStoreNames.contains('costumes')) {
+                        const costumeStore = db.createObjectStore('costumes', { keyPath: 'id', autoIncrement: true });
+                        costumeStore.createIndex('name', 'name', { unique: false });
+                    }
+
+                    // History Store (V9)
+                    if (!db.objectStoreNames.contains('history')) {
+                        const historyStore = db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+                        historyStore.createIndex('timestamp', 'timestamp', { unique: false });
+                        historyStore.createIndex('favorite', 'favorite', { unique: false });
                     }
 
                     // Settings Store
@@ -1404,6 +1660,108 @@
             });
         }
 
+        // ===== Costume Operations (V9) =====
+        function addCostume(costume) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['costumes'], 'readwrite');
+                const store = transaction.objectStore('costumes');
+                const request = store.add(costume);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateCostume(costume) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['costumes'], 'readwrite');
+                const store = transaction.objectStore('costumes');
+                const request = store.put(costume);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteCostume(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['costumes'], 'readwrite');
+                const store = transaction.objectStore('costumes');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllCostumes() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['costumes'], 'readonly');
+                const store = transaction.objectStore('costumes');
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ===== History Operations (V9) =====
+        function addHistory(historyItem) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['history'], 'readwrite');
+                const store = transaction.objectStore('history');
+                historyItem.timestamp = Date.now();
+                historyItem.favorite = historyItem.favorite || false;
+                const request = store.add(historyItem);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateHistory(historyItem) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['history'], 'readwrite');
+                const store = transaction.objectStore('history');
+                const request = store.put(historyItem);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteHistory(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['history'], 'readwrite');
+                const store = transaction.objectStore('history');
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllHistory() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['history'], 'readonly');
+                const store = transaction.objectStore('history');
+                const index = store.index('timestamp');
+                const request = index.openCursor(null, 'prev'); // 新しい順
+                const results = [];
+
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        results.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        resolve(results);
+                    }
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
         // ===== Project Operations (V3) =====
         function addProject(project) {
             return new Promise((resolve, reject) => {
@@ -1562,12 +1920,12 @@
         let currentOutputFormat = 'standard'; // standard, simple-jp, natural
         let strictSourceMode = false;
 
-        // ===== Tab Navigation (V2) =====
+        // ===== Tab Navigation (V2, V9: Updated for Bottom Nav) =====
         function switchTab(tabName) {
             currentTab = tabName;
 
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
+            // Update tab buttons (V9: Support both old and new nav)
+            document.querySelectorAll('.tab-button, .bottom-nav-item').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tab === tabName);
             });
 
@@ -1586,6 +1944,12 @@
                 loadCharacterList();
                 loadSituationList();
                 loadActionList();
+            } else if (tabName === 'closet') {
+                // V9: Load costume list
+                loadCostumeList();
+            } else if (tabName === 'history') {
+                // V9: Load history list
+                loadHistoryList();
             } else if (tabName === 'settings') {
                 loadSettings();
             }
@@ -1968,7 +2332,7 @@
         }
 
         // ===== Character Prompt Builder (V4) =====
-        function buildCharacterPrompt(character, format) {
+        async function buildCharacterPrompt(character, format, selectedCostume = null) {
             if (!character.builder) return ''; // Fallback for old data
 
             const b = character.builder;
@@ -1984,8 +2348,21 @@
                 if (b.hair?.en) parts.push(b.hair.en);
                 if (b.hairColor?.en) parts.push(b.hairColor.en + ' hair');
                 if (b.eyes?.en) parts.push(b.eyes.en);
-                if (b.clothes?.en) parts.push(b.clothes.en);
-                if (b.accessories?.en) parts.push(b.accessories.en);
+
+                // V9: Use costume if selected, otherwise use character's clothes
+                if (selectedCostume) {
+                    if (selectedCostume.fullSet) {
+                        parts.push(selectedCostume.fullSet);
+                    } else {
+                        if (selectedCostume.top) parts.push(selectedCostume.top);
+                        if (selectedCostume.bottom) parts.push(selectedCostume.bottom);
+                    }
+                    if (selectedCostume.accA) parts.push(selectedCostume.accA);
+                    if (selectedCostume.accB) parts.push(selectedCostume.accB);
+                } else {
+                    if (b.clothes?.en) parts.push(b.clothes.en);
+                    if (b.accessories?.en) parts.push(b.accessories.en);
+                }
 
                 return parts.filter(p => p).join(', ');
 
@@ -1999,8 +2376,20 @@
                 if (b.hair?.jp) parts.push(b.hair.jp);
                 if (b.hairColor?.jp) parts.push(b.hairColor.jp + 'の髪');
                 if (b.eyes?.jp) parts.push(b.eyes.jp);
-                if (b.clothes?.jp) parts.push(b.clothes.jp);
-                if (b.accessories?.jp) parts.push(b.accessories.jp);
+
+                // V9: Use costume if selected
+                if (selectedCostume) {
+                    if (selectedCostume.fullSet) parts.push(selectedCostume.fullSet);
+                    else {
+                        if (selectedCostume.top) parts.push(selectedCostume.top);
+                        if (selectedCostume.bottom) parts.push(selectedCostume.bottom);
+                    }
+                    if (selectedCostume.accA) parts.push(selectedCostume.accA);
+                    if (selectedCostume.accB) parts.push(selectedCostume.accB);
+                } else {
+                    if (b.clothes?.jp) parts.push(b.clothes.jp);
+                    if (b.accessories?.jp) parts.push(b.accessories.jp);
+                }
 
                 return parts.filter(p => p).join(', ');
 
@@ -2034,14 +2423,32 @@
                     desc += ` and ${b.eyes.en.toLowerCase()}`;
                 }
 
-                // Clothes
-                if (b.clothes?.en) {
-                    desc += `, wearing ${b.clothes.en.toLowerCase()}`;
-                }
-
-                // Accessories
-                if (b.accessories?.en) {
-                    desc += ` and ${b.accessories.en.toLowerCase()}`;
+                // V9: Clothes - Use costume if selected
+                if (selectedCostume) {
+                    if (selectedCostume.fullSet) {
+                        desc += `, wearing ${selectedCostume.fullSet.toLowerCase()}`;
+                    } else {
+                        const clothesParts = [];
+                        if (selectedCostume.top) clothesParts.push(selectedCostume.top.toLowerCase());
+                        if (selectedCostume.bottom) clothesParts.push(selectedCostume.bottom.toLowerCase());
+                        if (clothesParts.length > 0) {
+                            desc += `, wearing ${clothesParts.join(' and ')}`;
+                        }
+                    }
+                    // Accessories from costume
+                    const accParts = [];
+                    if (selectedCostume.accA) accParts.push(selectedCostume.accA.toLowerCase());
+                    if (selectedCostume.accB) accParts.push(selectedCostume.accB.toLowerCase());
+                    if (accParts.length > 0) {
+                        desc += ` and ${accParts.join(' and ')}`;
+                    }
+                } else {
+                    if (b.clothes?.en) {
+                        desc += `, wearing ${b.clothes.en.toLowerCase()}`;
+                    }
+                    if (b.accessories?.en) {
+                        desc += ` and ${b.accessories.en.toLowerCase()}`;
+                    }
                 }
 
                 return desc;
@@ -2078,10 +2485,18 @@
                 sections.push(positivePreset);
             }
 
+            // V9: Get selected costume
+            const costumeId = document.getElementById('costume-selector')?.value;
+            let selectedCostume = null;
+            if (costumeId) {
+                const costumes = await getAllCostumes();
+                selectedCostume = costumes.find(c => c.id === parseInt(costumeId));
+            }
+
             // Character sections with V8 per-character advanced settings
             if (selectedCharacters.length > 0) {
-                selectedCharacters.forEach(char => {
-                    const charTags = buildCharacterPrompt(char, format);
+                for (const char of selectedCharacters) {
+                    const charTags = await buildCharacterPrompt(char, format, selectedCostume);
 
                     // V8: Add per-character advanced settings
                     const advancedParts = [];
@@ -2109,7 +2524,7 @@
                         }
                         sections.push(charSection);
                     }
-                });
+                }
             }
 
             // Scene/Action section with group tags
@@ -3449,6 +3864,319 @@
             return colorMap[hex.toUpperCase()] || hex;
         }
 
+        // ===== V9: Firebase Initialization =====
+        let firebaseApp = null;
+        let firebaseAuth = null;
+        let firebaseDb = null;
+
+        function initFirebase() {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDEMOKEY_REPLACE_WITH_YOUR_KEY",
+                authDomain: "nanobanana-linker.firebaseapp.com",
+                projectId: "nanobanana-linker",
+                storageBucket: "nanobanana-linker.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:abcdef123456"
+            };
+
+            if (typeof firebase !== 'undefined' && !firebaseApp) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                firebaseAuth = firebase.auth();
+                firebaseDb = firebase.firestore();
+            }
+        }
+
+        // ===== V9: Costume Management =====
+        async function loadCostumeList() {
+            const costumes = await getAllCostumes();
+            const container = document.getElementById('costume-list');
+
+            if (costumes.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 col-span-full py-8">コスチュームを登録してください</div>';
+                return;
+            }
+
+            container.innerHTML = costumes.map(costume => `
+                <div class="card p-4">
+                    <h3 class="font-bold text-gray-800 mb-2">${costume.name}</h3>
+                    <div class="text-sm text-gray-600 mb-3">
+                        ${costume.fullSet ? `<p><strong>全身:</strong> ${costume.fullSet.substring(0, 50)}...</p>` : ''}
+                        ${costume.top ? `<p><strong>Top:</strong> ${costume.top.substring(0, 30)}...</p>` : ''}
+                        ${costume.bottom ? `<p><strong>Bottom:</strong> ${costume.bottom.substring(0, 30)}...</p>` : ''}
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="editCostume(${costume.id})" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition">
+                            ✏️ 編集
+                        </button>
+                        <button onclick="deleteCostumeConfirm(${costume.id})" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition">
+                            🗑️ 削除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Update costume selector in Generator
+            await updateCostumeSelector();
+        }
+
+        async function updateCostumeSelector() {
+            const costumes = await getAllCostumes();
+            const selector = document.getElementById('costume-selector');
+
+            selector.innerHTML = '<option value="">衣装を選択しない（キャラ固有の衣装を使用）</option>' +
+                costumes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        function showCostumeModal(costumeId = null) {
+            const modal = document.getElementById('costume-modal');
+            const form = document.getElementById('costume-form');
+            const title = document.getElementById('costume-modal-title');
+
+            form.reset();
+            document.getElementById('costume-id').value = '';
+
+            if (costumeId) {
+                title.textContent = 'コスチューム編集';
+                getAllCostumes().then(costumes => {
+                    const costume = costumes.find(c => c.id === costumeId);
+                    if (costume) {
+                        document.getElementById('costume-id').value = costume.id;
+                        document.getElementById('costume-name').value = costume.name;
+                        document.getElementById('costume-fullset').value = costume.fullSet || '';
+                        document.getElementById('costume-top').value = costume.top || '';
+                        document.getElementById('costume-bottom').value = costume.bottom || '';
+                        document.getElementById('costume-acc-a').value = costume.accA || '';
+                        document.getElementById('costume-acc-b').value = costume.accB || '';
+                    }
+                });
+            } else {
+                title.textContent = 'コスチューム登録';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function editCostume(id) {
+            showCostumeModal(id);
+        }
+
+        async function deleteCostumeConfirm(id) {
+            if (confirm('このコスチュームを削除しますか?')) {
+                await deleteCostume(id);
+                await loadCostumeList();
+            }
+        }
+
+        // ===== V9: History Management =====
+        let currentHistoryFilter = 'all'; // 'all' or 'favorites'
+
+        async function loadHistoryList(filter = 'all') {
+            currentHistoryFilter = filter;
+            let history = await getAllHistory();
+
+            if (filter === 'favorites') {
+                history = history.filter(h => h.favorite);
+            }
+
+            const container = document.getElementById('history-list');
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">生成履歴がありません</div>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => {
+                const date = new Date(item.timestamp);
+                const dateStr = date.toLocaleString('ja-JP');
+                return `
+                    <div class="card p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">${item.characterName || '不明'}</h4>
+                                <p class="text-xs text-gray-500">${dateStr}</p>
+                            </div>
+                            <button onclick="toggleHistoryFavorite(${item.id}, ${!item.favorite})"
+                                class="text-2xl ${item.favorite ? 'text-yellow-500' : 'text-gray-300'} hover:text-yellow-500 transition">
+                                ${item.favorite ? '★' : '☆'}
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded text-sm text-gray-700 mb-3 max-h-32 overflow-y-auto font-mono text-xs">
+                            ${item.prompt.substring(0, 200)}${item.prompt.length > 200 ? '...' : ''}
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="reuseHistory(${item.id})" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm transition">
+                                🔄 再適用
+                            </button>
+                            <button onclick="copyHistoryPrompt(${item.id})" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm transition">
+                                📋 コピー
+                            </button>
+                            <button onclick="deleteHistoryItem(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm transition">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function saveToHistory(prompt, characterName) {
+            await addHistory({
+                prompt: prompt,
+                characterName: characterName,
+                favorite: false
+            });
+        }
+
+        async function toggleHistoryFavorite(id, favorite) {
+            const history = await getAllHistory();
+            const item = history.find(h => h.id === id);
+            if (item) {
+                item.favorite = favorite;
+                await updateHistory(item);
+                await loadHistoryList(currentHistoryFilter);
+            }
+        }
+
+        async function deleteHistoryItem(id) {
+            if (confirm('この履歴を削除しますか?')) {
+                await deleteHistory(id);
+                await loadHistoryList(currentHistoryFilter);
+            }
+        }
+
+        async function copyHistoryPrompt(id) {
+            const history = await getAllHistory();
+            const item = history.find(h => h.id === id);
+            if (item) {
+                await navigator.clipboard.writeText(item.prompt);
+                alert('プロンプトをクリップボードにコピーしました');
+            }
+        }
+
+        async function reuseHistory(id) {
+            const history = await getAllHistory();
+            const item = history.find(h => h.id === id);
+            if (item && confirm('この履歴の設定を再適用しますか?\n※現在の設定が上書きされます')) {
+                // Simply copy the prompt for now
+                document.getElementById('prompt-preview').textContent = item.prompt;
+                switchTab('generator');
+                alert('プロンプトをプレビューに表示しました');
+            }
+        }
+
+        // ===== V9: Firebase Sync Functions =====
+        async function handleFirebaseLogin() {
+            if (!firebaseAuth) {
+                alert('Firebaseが初期化されていません。\n※デモ版ではFirebase設定が必要です。');
+                return;
+            }
+
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await firebaseAuth.signInWithPopup(provider);
+                updateFirebaseUI();
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('ログインに失敗しました: ' + error.message);
+            }
+        }
+
+        async function handleFirebaseLogout() {
+            if (firebaseAuth) {
+                await firebaseAuth.signOut();
+                updateFirebaseUI();
+            }
+        }
+
+        function updateFirebaseUI() {
+            const loginSection = document.getElementById('firebase-login-section');
+            const syncSection = document.getElementById('firebase-sync-section');
+            const userEmail = document.getElementById('firebase-user-email');
+
+            if (firebaseAuth && firebaseAuth.currentUser) {
+                loginSection.classList.add('hidden');
+                syncSection.classList.remove('hidden');
+                userEmail.textContent = firebaseAuth.currentUser.email;
+            } else {
+                loginSection.classList.remove('hidden');
+                syncSection.classList.add('hidden');
+            }
+        }
+
+        async function handleFirebaseUpload() {
+            if (!firebaseAuth || !firebaseAuth.currentUser || !firebaseDb) {
+                alert('ログインしてください');
+                return;
+            }
+
+            try {
+                const data = {
+                    characters: await getAllCharacters(),
+                    situations: await getAllSituations(),
+                    actions: await getAllActions(),
+                    styles: await getAllStyles(),
+                    props: await getAllProps(),
+                    costumes: await getAllCostumes(),
+                    history: await getAllHistory(),
+                    timestamp: Date.now()
+                };
+
+                await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).set(data);
+                alert('クラウドへのアップロードが完了しました!');
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('アップロードに失敗しました: ' + error.message);
+            }
+        }
+
+        async function handleFirebaseDownload() {
+            if (!firebaseAuth || !firebaseAuth.currentUser || !firebaseDb) {
+                alert('ログインしてください');
+                return;
+            }
+
+            if (!confirm('クラウドからダウンロードすると、現在のデータが上書きされます。\n続行しますか?')) {
+                return;
+            }
+
+            try {
+                const doc = await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).get();
+
+                if (!doc.exists) {
+                    alert('クラウドにバックアップが見つかりませんでした');
+                    return;
+                }
+
+                const data = doc.data();
+
+                // Clear and restore data
+                if (data.characters) {
+                    for (const char of data.characters) {
+                        delete char.id;
+                        await addCharacter(char);
+                    }
+                }
+                if (data.costumes) {
+                    for (const costume of data.costumes) {
+                        delete costume.id;
+                        await addCostume(costume);
+                    }
+                }
+                if (data.history) {
+                    for (const hist of data.history) {
+                        delete hist.id;
+                        await addHistory(hist);
+                    }
+                }
+
+                alert('クラウドからのダウンロードが完了しました!');
+                location.reload();
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('ダウンロードに失敗しました: ' + error.message);
+            }
+        }
+
         // ===== Event Listeners (V2) =====
         document.addEventListener('DOMContentLoaded', async () => {
             await initDB();
@@ -3729,6 +4457,102 @@
                 });
             });
 
+            // V9: Bottom Navigation
+            document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // V9: Sync Button
+            document.getElementById('sync-button')?.addEventListener('click', () => {
+                document.getElementById('firebase-sync-modal').classList.add('show');
+            });
+
+            // V9: Costume Management
+            document.getElementById('add-costume-btn')?.addEventListener('click', () => showCostumeModal());
+
+            document.getElementById('costume-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const costume = {
+                    name: document.getElementById('costume-name').value,
+                    fullSet: document.getElementById('costume-fullset').value,
+                    top: document.getElementById('costume-top').value,
+                    bottom: document.getElementById('costume-bottom').value,
+                    accA: document.getElementById('costume-acc-a').value,
+                    accB: document.getElementById('costume-acc-b').value
+                };
+
+                const id = document.getElementById('costume-id').value;
+                if (id) {
+                    costume.id = parseInt(id);
+                    await updateCostume(costume);
+                } else {
+                    await addCostume(costume);
+                }
+
+                closeModal();
+                await loadCostumeList();
+            });
+
+            // V9: Costume Selector
+            document.getElementById('costume-selector')?.addEventListener('change', updatePromptPreview);
+
+            // V9: History Management
+            document.getElementById('show-all-history')?.addEventListener('click', (e) => {
+                document.querySelectorAll('#show-all-history, #show-favorites').forEach(btn => {
+                    btn.classList.remove('bg-blue-500', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-700');
+                });
+                e.target.classList.remove('bg-white', 'text-gray-700');
+                e.target.classList.add('bg-blue-500', 'text-white');
+                loadHistoryList('all');
+            });
+
+            document.getElementById('show-favorites')?.addEventListener('click', (e) => {
+                document.querySelectorAll('#show-all-history, #show-favorites').forEach(btn => {
+                    btn.classList.remove('bg-blue-500', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-700');
+                });
+                e.target.classList.remove('bg-white', 'text-gray-700');
+                e.target.classList.add('bg-blue-500', 'text-white');
+                loadHistoryList('favorites');
+            });
+
+            document.getElementById('clear-history-btn')?.addEventListener('click', async () => {
+                if (confirm('すべての履歴を削除しますか?')) {
+                    const history = await getAllHistory();
+                    for (const item of history) {
+                        await deleteHistory(item.id);
+                    }
+                    await loadHistoryList();
+                }
+            });
+
+            // V9: Firebase Sync
+            document.getElementById('firebase-login-btn')?.addEventListener('click', handleFirebaseLogin);
+            document.getElementById('firebase-logout-btn')?.addEventListener('click', handleFirebaseLogout);
+            document.getElementById('firebase-upload-btn')?.addEventListener('click', handleFirebaseUpload);
+            document.getElementById('firebase-download-btn')?.addEventListener('click', handleFirebaseDownload);
+
+            // V9: Override Copy Prompt to Save History
+            const originalCopyBtn = document.getElementById('copy-prompt-btn');
+            if (originalCopyBtn) {
+                const newCopyBtn = originalCopyBtn.cloneNode(true);
+                originalCopyBtn.parentNode.replaceChild(newCopyBtn, originalCopyBtn);
+
+                newCopyBtn.addEventListener('click', async () => {
+                    const prompt = document.getElementById('prompt-preview').textContent;
+                    await navigator.clipboard.writeText(prompt);
+
+                    // Save to history
+                    const charName = selectedCharacters.length > 0
+                        ? (await getAllCharacters()).find(c => c.id === selectedCharacters[0])?.name || '不明'
+                        : '不明';
+                    await saveToHistory(prompt, charName);
+
+                    alert('📋 プロンプトをコピーしました!');
+                });
+            }
+
             // Initialize (V2)
             await renderGeneratorHub();
             loadSettings();
@@ -3739,6 +4563,15 @@
             await renderPropsSelector();
             await loadPropsList();
             updateColorMode(); // Initialize color picker visibility
+
+            // V9: Initialize Firebase and Costume Selector
+            try {
+                initFirebase();
+                updateFirebaseUI();
+            } catch (e) {
+                console.warn('Firebase initialization failed:', e);
+            }
+            await updateCostumeSelector();
         });
 
         // ===== PWA Service Worker =====
