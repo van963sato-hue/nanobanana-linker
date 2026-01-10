@@ -380,6 +380,30 @@
                             </div>
                         </div>
 
+                        <!-- Comic Project Selection (V10) -->
+                        <div id="comic-project-section" class="accordion hidden">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span>📚 コミックプロジェクト選択</span>
+                                <span class="icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">プロジェクト</label>
+                                        <select id="comic-project-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">プロジェクトを選択...</option>
+                                        </select>
+                                        <p class="text-sm text-gray-500 mt-2">※プロジェクトの画風設定がプロンプトに反映されます</p>
+                                    </div>
+                                    <div id="comic-project-info" class="hidden bg-blue-50 p-4 rounded-lg">
+                                        <h4 class="font-bold text-gray-800 mb-2">選択中のプロジェクト</h4>
+                                        <div id="comic-project-title" class="text-sm text-gray-700 font-semibold mb-1"></div>
+                                        <div id="comic-project-style" class="text-xs text-gray-600"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- V8: Per-Character Advanced Settings -->
                         <div id="per-character-advanced-settings" class="space-y-4">
                             <!-- Dynamically populated when characters are selected -->
@@ -1926,6 +1950,7 @@
         let currentDBSubtab = 'characters';
         let selectedCharacters = []; // Array of character objects
         let selectedSituation = null;
+        let selectedComicProject = null; // V10: Selected comic project for home comic mode
         let selectedAction = null;
         let selectedImages = [];
         let editingCharacterId = null;
@@ -2012,6 +2037,14 @@
                 document.getElementById('duo-options').classList.add('hidden');
             }
 
+            // V10: Show/hide comic project section
+            if (mode === 'comic') {
+                document.getElementById('comic-project-section').classList.remove('hidden');
+                loadComicProjectSelector();
+            } else {
+                document.getElementById('comic-project-section').classList.add('hidden');
+            }
+
             // Update UI based on mode
             if (mode === 'solo') {
                 // Solo mode: clear multiple selections, keep only first
@@ -2021,6 +2054,48 @@
             }
 
             renderCharacterSelector();
+            updatePromptPreview();
+        }
+
+        // V10: Comic Project Selection for Home Mode
+        async function loadComicProjectSelector() {
+            const projects = await getAllProjects();
+            const selector = document.getElementById('comic-project-selector');
+
+            selector.innerHTML = '<option value="">プロジェクトを選択...</option>';
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.title;
+                selector.appendChild(option);
+            });
+        }
+
+        async function selectComicProject(projectId) {
+            if (!projectId) {
+                selectedComicProject = null;
+                document.getElementById('comic-project-info').classList.add('hidden');
+                updatePromptPreview();
+                return;
+            }
+
+            selectedComicProject = await getProject(parseInt(projectId));
+
+            // Show project info
+            const infoSection = document.getElementById('comic-project-info');
+            infoSection.classList.remove('hidden');
+            document.getElementById('comic-project-title').textContent = selectedComicProject.title;
+
+            // Show selected style
+            const styles = [];
+            if (selectedComicProject.styleMonochrome) styles.push('⬛ Monochrome');
+            if (selectedComicProject.styleFullColor) styles.push('🎨 Full Color');
+            if (selectedComicProject.style4Koma) styles.push('📄 4-Koma');
+            if (selectedComicProject.styleWebtoon) styles.push('📱 Webtoon');
+
+            document.getElementById('comic-project-style').textContent =
+                styles.length > 0 ? `画風: ${styles.join(', ')}` : '画風設定なし';
+
             updatePromptPreview();
         }
 
@@ -2583,11 +2658,38 @@
                     }
                 }
 
-                // Comic mode style tags
+                // V10: Comic mode style tags (use project settings if available)
                 if (currentMode === 'comic') {
-                    if (format === 'standard') sceneActionParts.push('comic', 'monochrome');
-                    else if (format === 'simple-jp') sceneActionParts.push('漫画', 'モノクロ');
-                    else if (format === 'natural') sceneActionParts.push('comic-style monochrome illustration');
+                    if (selectedComicProject) {
+                        // Use project style presets
+                        if (selectedComicProject.styleMonochrome) {
+                            if (format === 'standard') sceneActionParts.push('monochrome', 'greyscale', 'screentone', 'comic', 'manga');
+                            else if (format === 'simple-jp') sceneActionParts.push('モノクロ', 'グレースケール', 'スクリーントーン', '漫画');
+                            else if (format === 'natural') sceneActionParts.push('monochrome manga with screentone shading');
+                        } else if (selectedComicProject.styleFullColor) {
+                            if (format === 'standard') sceneActionParts.push('full color', 'comic', 'vibrant colors');
+                            else if (format === 'simple-jp') sceneActionParts.push('フルカラー', '漫画', '鮮やかな色');
+                            else if (format === 'natural') sceneActionParts.push('full color comic with vibrant colors');
+                        } else if (selectedComicProject.style4Koma) {
+                            if (format === 'standard') sceneActionParts.push('4koma', 'comic', '4 panels');
+                            else if (format === 'simple-jp') sceneActionParts.push('4コマ', '漫画', '4コマ形式');
+                            else if (format === 'natural') sceneActionParts.push('4-panel comic strip');
+                        } else if (selectedComicProject.styleWebtoon) {
+                            if (format === 'standard') sceneActionParts.push('webtoon', 'full color', 'scrolling format');
+                            else if (format === 'simple-jp') sceneActionParts.push('ウェブトゥーン', 'フルカラー', 'スクロール形式');
+                            else if (format === 'natural') sceneActionParts.push('webtoon-style full color illustration');
+                        } else {
+                            // Default to comic tag if no style selected
+                            if (format === 'standard') sceneActionParts.push('comic');
+                            else if (format === 'simple-jp') sceneActionParts.push('漫画');
+                            else if (format === 'natural') sceneActionParts.push('comic-style illustration');
+                        }
+                    } else {
+                        // Default comic style when no project selected
+                        if (format === 'standard') sceneActionParts.push('comic', 'monochrome');
+                        else if (format === 'simple-jp') sceneActionParts.push('漫画', 'モノクロ');
+                        else if (format === 'natural') sceneActionParts.push('comic-style monochrome illustration');
+                    }
                 }
             }
 
@@ -2630,22 +2732,26 @@
                 atmosphereParts.push(lineartStrength);
             }
 
-            // Color Mode
-            const colorMode = document.querySelector('input[name="color-mode"]:checked')?.value;
-            if (colorMode && colorMode !== 'none') {
-                const color1 = document.getElementById('color-1')?.value || '#FF0000';
-                const colorName1 = hexToColorName(color1);
+            // V10: Color Mode (skip if comic mode with monochrome project - monochrome overrides color)
+            const skipColorMode = currentMode === 'comic' && selectedComicProject && selectedComicProject.styleMonochrome;
 
-                if (colorMode === 'monotone') {
-                    atmosphereParts.push(`monotone, ${colorName1} theme`);
-                } else if (colorMode === 'two-tone') {
-                    const color2 = document.getElementById('color-2')?.value || '#0000FF';
-                    const colorName2 = hexToColorName(color2);
-                    atmosphereParts.push(`two-tone, ${colorName1} and ${colorName2}`);
-                } else if (colorMode === 'background') {
-                    atmosphereParts.push(`${colorName1} background`);
-                } else if (colorMode === 'theme') {
-                    atmosphereParts.push(`theme color is ${color1}`);
+            if (!skipColorMode) {
+                const colorMode = document.querySelector('input[name="color-mode"]:checked')?.value;
+                if (colorMode && colorMode !== 'none') {
+                    const color1 = document.getElementById('color-1')?.value || '#FF0000';
+                    const colorName1 = hexToColorName(color1);
+
+                    if (colorMode === 'monotone') {
+                        atmosphereParts.push(`monotone, ${colorName1} theme`);
+                    } else if (colorMode === 'two-tone') {
+                        const color2 = document.getElementById('color-2')?.value || '#0000FF';
+                        const colorName2 = hexToColorName(color2);
+                        atmosphereParts.push(`two-tone, ${colorName1} and ${colorName2}`);
+                    } else if (colorMode === 'background') {
+                        atmosphereParts.push(`${colorName1} background`);
+                    } else if (colorMode === 'theme') {
+                        atmosphereParts.push(`theme color is ${color1}`);
+                    }
                 }
             }
 
@@ -4746,6 +4852,11 @@
 
             // V9: Costume Selector
             document.getElementById('costume-selector')?.addEventListener('change', updatePromptPreview);
+
+            // V10: Comic Project Selector
+            document.getElementById('comic-project-selector')?.addEventListener('change', (e) => {
+                selectComicProject(e.target.value);
+            });
 
             // V9: History Management
             document.getElementById('show-all-history')?.addEventListener('click', (e) => {
