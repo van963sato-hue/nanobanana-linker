@@ -2794,6 +2794,60 @@
                 }
             }
 
+            // V10: Add comic panel settings if page is selected
+            if (currentMode === 'comic' && selectedComicPage) {
+                if (selectedComicPanelIndex !== null) {
+                    // Single panel selected
+                    const panel = selectedComicPage.panels && selectedComicPage.panels[selectedComicPanelIndex];
+                    if (panel) {
+                        // Add composition
+                        if (panel.composition) {
+                            sceneActionParts.push(panel.composition);
+                        }
+
+                        // Add custom description
+                        if (panel.customDescription) {
+                            sceneActionParts.push(panel.customDescription);
+                        }
+
+                        // Add character names from panel if available
+                        if (panel.characterNames && panel.characterNames.length > 0) {
+                            sceneActionParts.push(`featuring: ${panel.characterNames.join(', ')}`);
+                        }
+
+                        // Add background only flag
+                        if (panel.isBackgroundOnly) {
+                            if (format === 'standard') sceneActionParts.push('no humans', 'scenery');
+                            else if (format === 'simple-jp') sceneActionParts.push('人物なし', '風景');
+                            else if (format === 'natural') sceneActionParts.push('background scenery without characters');
+                        }
+                    }
+                } else {
+                    // All panels - add multi-panel info
+                    const panelCount = selectedComicPage.panelsPerPage || 1;
+                    if (panelCount > 1) {
+                        if (format === 'standard') sceneActionParts.push(`multiple panels`, `${panelCount} panels`);
+                        else if (format === 'simple-jp') sceneActionParts.push(`複数コマ`, `${panelCount}コマ`);
+                        else if (format === 'natural') sceneActionParts.push(`comic layout with ${panelCount} panels`);
+
+                        // Collect all custom descriptions from panels
+                        if (selectedComicPage.panels && selectedComicPage.panels.length > 0) {
+                            const descriptions = selectedComicPage.panels
+                                .map((p, i) => p.customDescription ? `Panel ${i + 1}: ${p.customDescription}` : null)
+                                .filter(d => d);
+                            if (descriptions.length > 0) {
+                                sceneActionParts.push(descriptions.join(', '));
+                            }
+                        }
+                    }
+                }
+
+                // Add page memo if available
+                if (selectedComicPage.memo) {
+                    sceneActionParts.push(`[${selectedComicPage.memo}]`);
+                }
+            }
+
             // Add situation and action tags
             if (selectedSituation) sceneActionParts.push(selectedSituation.tags);
             if (selectedAction) sceneActionParts.push(selectedAction.tags);
@@ -4957,6 +5011,16 @@
             // V10: Comic Project Selector
             document.getElementById('comic-project-selector')?.addEventListener('change', (e) => {
                 selectComicProject(e.target.value);
+            });
+
+            // V10: Comic Page Selector
+            document.getElementById('comic-page-selector')?.addEventListener('change', (e) => {
+                selectComicPage(e.target.value);
+            });
+
+            // V10: Comic Panel Selector
+            document.getElementById('comic-panel-selector')?.addEventListener('change', (e) => {
+                selectComicPanel(e.target.value);
             });
 
             // V9: History Management
