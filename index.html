@@ -2887,7 +2887,10 @@
                     }
 
                     // V8: Add character physical attributes from database
-                    if (char.age) advancedParts.push(char.age);
+                    // V10: Skip char.age if ageModifier is set (ageModifier takes priority)
+                    if (char.age && (!settings || !settings.ageModifier)) {
+                        advancedParts.push(char.age);
+                    }
                     if (char.height) advancedParts.push(char.height);
                     if (char.bodyType) advancedParts.push(char.bodyType);
                     if (char.customBodyType) advancedParts.push(char.customBodyType);
