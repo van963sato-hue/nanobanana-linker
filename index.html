@@ -2887,11 +2887,14 @@
                     }
 
                     // V8: Add character physical attributes from database
-                    // V10: Skip char.age if ageModifier is set (ageModifier takes priority)
-                    if (char.age && (!settings || !settings.ageModifier)) {
+                    // V10: Skip char.age and char.height if ageModifier is set (ageModifier takes priority)
+                    const hasAgeModifier = settings && settings.ageModifier;
+                    if (char.age && !hasAgeModifier) {
                         advancedParts.push(char.age);
                     }
-                    if (char.height) advancedParts.push(char.height);
+                    if (char.height && !hasAgeModifier) {
+                        advancedParts.push(char.height);
+                    }
                     if (char.bodyType) advancedParts.push(char.bodyType);
                     if (char.customBodyType) advancedParts.push(char.customBodyType);
 
@@ -2901,6 +2904,12 @@
                         if (advancedParts.length > 0) {
                             charSection += `\n${advancedParts.join(', ')}`;
                         }
+
+                        // V10: Add age manipulation note if strict source mode is on and age modifier is set
+                        if (strictSource && hasAgeModifier) {
+                            charSection += `\n(このキャラの年齢操作)`;
+                        }
+
                         sections.push(charSection);
                     }
                 }
