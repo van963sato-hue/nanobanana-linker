@@ -4122,7 +4122,9 @@
                     timestamp: Date.now()
                 };
 
-                await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).set(data);
+                await firebaseDb.collection('backups').doc(firebaseAuth.currentUser.uid).set({
+                    content: JSON.stringify(data)
+                });
                 alert('クラウドへのアップロードが完了しました!');
             } catch (error) {
                 console.error('Upload error:', error);
@@ -4148,7 +4150,8 @@
                     return;
                 }
 
-                const data = doc.data();
+                const rawData = doc.data();
+                const data = JSON.parse(rawData.content);
 
                 // Clear existing data first
                 const existingCharacters = await getAllCharacters();
