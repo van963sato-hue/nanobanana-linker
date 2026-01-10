@@ -3765,11 +3765,22 @@
             props = await getAllProps();
             const container = document.getElementById('props-selector');
 
+            // V10: Sort props (pinned first, then by name)
+            props = sortItems(props, propsSortOrder);
+
             let html = '<button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">指定なし</button>';
 
             props.forEach(prop => {
                 const activeClass = selectedProp?.id === prop.id ? 'active' : '';
-                html += `<button class="props-btn ${activeClass} p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="${prop.id}">${prop.name}</button>`;
+                const isPinned = prop.pinned || false;
+                html += `
+                <div class="relative">
+                    <button class="pin-btn-small absolute top-0 right-0 text-sm z-10" data-id="${prop.id}" data-type="prop" data-pinned="${isPinned}">
+                        ${isPinned ? '📌' : '📍'}
+                    </button>
+                    <button class="props-btn ${activeClass} p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="${prop.id}">${prop.name}</button>
+                </div>
+                `;
             });
 
             container.innerHTML = html;
