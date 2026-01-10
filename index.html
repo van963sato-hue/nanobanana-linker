@@ -395,21 +395,17 @@
                                 <div class="space-y-6">
                                     <!-- Where? Situation Selection -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">📍 Where? （場所）</h3>
-                                        <div id="situation-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
-                                                指定なし
-                                            </button>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">📍 Where? （場所）- 複数選択可</h3>
+                                        <div id="situation-selector" class="space-y-2 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                            <div class="text-sm text-gray-400">読み込み中...</div>
                                         </div>
                                     </div>
 
                                     <!-- Doing What? Action Selection -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎬 Doing What? （行動）</h3>
-                                        <div id="action-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                                            <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
-                                                指定なし
-                                            </button>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎬 Doing What? （行動）- 複数選択可</h3>
+                                        <div id="action-selector" class="space-y-2 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50 mb-4">
+                                            <div class="text-sm text-gray-400">読み込み中...</div>
                                         </div>
                                         <label class="block text-gray-700 font-semibold mb-2">フリー入力（日本語可）</label>
                                         <textarea id="custom-action-input" rows="2" placeholder="例：丸々しているところ、祈っている、など"
@@ -418,11 +414,9 @@
 
                                     <!-- Props (V6) -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎁 Props （小物）</h3>
-                                        <div id="props-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                                            <button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
-                                                指定なし
-                                            </button>
+                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎁 Props （小物）- 複数選択可</h3>
+                                        <div id="props-selector" class="space-y-2 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50 mb-4">
+                                            <div class="text-sm text-gray-400">読み込み中...</div>
                                         </div>
                                         <label class="block text-gray-700 font-semibold mb-2">フリー入力（小物）</label>
                                         <textarea id="custom-props-input" rows="2" placeholder="例：剣、本、花束、など"
@@ -1899,8 +1893,8 @@
         let currentMode = 'solo'; // solo, duo, comic
         let currentDBSubtab = 'characters';
         let selectedCharacters = []; // Array of character objects
-        let selectedSituation = null;
-        let selectedAction = null;
+        let selectedSituations = []; // V9.1: Changed to array for multi-select
+        let selectedActions = []; // V9.1: Changed to array for multi-select
         let selectedImages = [];
         let editingCharacterId = null;
         let editingSituationId = null;
@@ -2272,55 +2266,65 @@
             const container = document.getElementById('situation-selector');
             const situations = await getAllSituations();
 
-            let html = '<button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedSituation ? ' active' : '') + '" data-id="">指定なし</button>';
-
-            html += situations.map(situation => `
-                <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedSituation && selectedSituation.id === situation.id ? 'active' : ''}" data-id="${situation.id}">
-                    ${situation.name}
-                </button>
-            `).join('');
-
-            container.innerHTML = html;
-        }
-
-        async function selectSituation(situationId) {
-            if (!situationId) {
-                selectedSituation = null;
-            } else {
-                const situations = await getAllSituations();
-                selectedSituation = situations.find(s => s.id === parseInt(situationId)) || null;
+            if (situations.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-400">場所を登録してください</div>';
+                return;
             }
 
-            renderSituationSelector();
-            updatePromptPreview();
+            container.innerHTML = situations.map(situation => `
+                <label class="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input type="checkbox" class="situation-checkbox w-4 h-4" data-id="${situation.id}" ${selectedSituations.includes(situation.id) ? 'checked' : ''}>
+                    <span class="text-sm">${situation.name}</span>
+                </label>
+            `).join('');
+
+            // Add event listeners to checkboxes
+            container.querySelectorAll('.situation-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const situationId = parseInt(e.target.dataset.id);
+                    if (e.target.checked) {
+                        if (!selectedSituations.includes(situationId)) {
+                            selectedSituations.push(situationId);
+                        }
+                    } else {
+                        selectedSituations = selectedSituations.filter(id => id !== situationId);
+                    }
+                    updatePromptPreview();
+                });
+            });
         }
 
-        // ===== Action Selection (V2) =====
+        // ===== Action Selection (V2, V9.1: Multi-select) =====
         async function renderActionSelector() {
             const container = document.getElementById('action-selector');
             const actions = await getAllActions();
 
-            let html = '<button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedAction ? ' active' : '') + '" data-id="">指定なし</button>';
-
-            html += actions.map(action => `
-                <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedAction && selectedAction.id === action.id ? 'active' : ''}" data-id="${action.id}">
-                    ${action.name}
-                </button>
-            `).join('');
-
-            container.innerHTML = html;
-        }
-
-        async function selectAction(actionId) {
-            if (!actionId) {
-                selectedAction = null;
-            } else {
-                const actions = await getAllActions();
-                selectedAction = actions.find(a => a.id === parseInt(actionId)) || null;
+            if (actions.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-400">行動を登録してください</div>';
+                return;
             }
 
-            renderActionSelector();
-            updatePromptPreview();
+            container.innerHTML = actions.map(action => `
+                <label class="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input type="checkbox" class="action-checkbox w-4 h-4" data-id="${action.id}" ${selectedActions.includes(action.id) ? 'checked' : ''}>
+                    <span class="text-sm">${action.name}</span>
+                </label>
+            `).join('');
+
+            // Add event listeners to checkboxes
+            container.querySelectorAll('.action-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const actionId = parseInt(e.target.dataset.id);
+                    if (e.target.checked) {
+                        if (!selectedActions.includes(actionId)) {
+                            selectedActions.push(actionId);
+                        }
+                    } else {
+                        selectedActions = selectedActions.filter(id => id !== actionId);
+                    }
+                    updatePromptPreview();
+                });
+            });
         }
 
         // ===== Generator Hub Init (V2) =====
@@ -2565,13 +2569,32 @@
                 }
             }
 
-            // Add situation and action tags
-            if (selectedSituation) sceneActionParts.push(selectedSituation.tags);
-            if (selectedAction) sceneActionParts.push(selectedAction.tags);
+            // V9.1: Add multiple situations, actions, and props
+            if (selectedSituations.length > 0) {
+                const situations = await getAllSituations();
+                selectedSituations.forEach(sitId => {
+                    const situation = situations.find(s => s.id === sitId);
+                    if (situation?.tags) sceneActionParts.push(situation.tags);
+                });
+            }
+
+            if (selectedActions.length > 0) {
+                const actions = await getAllActions();
+                selectedActions.forEach(actId => {
+                    const action = actions.find(a => a.id === actId);
+                    if (action?.tags) sceneActionParts.push(action.tags);
+                });
+            }
+
             if (customAction) sceneActionParts.push(customAction);
 
-            // V6: Props
-            if (selectedProp) sceneActionParts.push(selectedProp.prompt);
+            // V9.1: Multiple Props
+            if (selectedProps.length > 0) {
+                selectedProps.forEach(propId => {
+                    const prop = props.find(p => p.id === propId);
+                    if (prop?.prompt) sceneActionParts.push(prop.prompt);
+                });
+            }
             const customProps = document.getElementById('custom-props-input')?.value.trim();
             if (customProps) sceneActionParts.push(customProps);
 
@@ -3130,7 +3153,7 @@
         // ===== Props Management (V6) =====
         let editingPropId = null;
         let props = [];
-        let selectedProp = null;
+        let selectedProps = []; // V9.1: Changed to array for multi-select
 
         async function loadPropsList() {
             const allProps = await getAllProps();
@@ -3211,31 +3234,32 @@
             props = await getAllProps();
             const container = document.getElementById('props-selector');
 
-            let html = '<button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">指定なし</button>';
-
-            props.forEach(prop => {
-                const activeClass = selectedProp?.id === prop.id ? 'active' : '';
-                html += `<button class="props-btn ${activeClass} p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="${prop.id}">${prop.name}</button>`;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function selectProp(id) {
-            if (!id) {
-                selectedProp = null;
-            } else {
-                selectedProp = props.find(p => p.id == id);
+            if (props.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-400">小物を登録してください</div>';
+                return;
             }
 
-            document.querySelectorAll('.props-btn').forEach(btn => {
-                btn.classList.remove('active');
+            container.innerHTML = props.map(prop => `
+                <label class="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input type="checkbox" class="prop-checkbox w-4 h-4" data-id="${prop.id}" ${selectedProps.includes(prop.id) ? 'checked' : ''}>
+                    <span class="text-sm">${prop.name}</span>
+                </label>
+            `).join('');
+
+            // Add event listeners to checkboxes
+            container.querySelectorAll('.prop-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const propId = parseInt(e.target.dataset.id);
+                    if (e.target.checked) {
+                        if (!selectedProps.includes(propId)) {
+                            selectedProps.push(propId);
+                        }
+                    } else {
+                        selectedProps = selectedProps.filter(id => id !== propId);
+                    }
+                    updatePromptPreview();
+                });
             });
-
-            const activeBtn = document.querySelector(`.props-btn[data-id="${id}"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-
-            updatePromptPreview();
         }
 
         // ===== Project Management (V3) =====
@@ -3870,19 +3894,28 @@
         let firebaseDb = null;
 
         function initFirebase() {
+            // Firebase設定 - aidatabaseapp プロジェクト
+            // 注意: apiKey と appId は Firebase Console から取得して設定してください
+            // https://console.firebase.google.com/u/0/project/aidatabaseapp/settings/general/web
             const firebaseConfig = {
-                apiKey: "AIzaSyDEMOKEY_REPLACE_WITH_YOUR_KEY",
-                authDomain: "nanobanana-linker.firebaseapp.com",
-                projectId: "nanobanana-linker",
-                storageBucket: "nanobanana-linker.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef123456"
+                apiKey: "YOUR_API_KEY_HERE", // Firebase Console から取得してください
+                authDomain: "aidatabaseapp.firebaseapp.com",
+                projectId: "aidatabaseapp",
+                storageBucket: "aidatabaseapp.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID_HERE", // Firebase Console から取得してください
+                appId: "YOUR_APP_ID_HERE", // Firebase Console から取得してください
+                measurementId: "G-XVKJ81EJDW"
             };
 
             if (typeof firebase !== 'undefined' && !firebaseApp) {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                firebaseAuth = firebase.auth();
-                firebaseDb = firebase.firestore();
+                try {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    firebaseAuth = firebase.auth();
+                    firebaseDb = firebase.firestore();
+                } catch (error) {
+                    console.error('Firebase initialization error:', error);
+                    // Firebase設定が不完全な場合はスキップ
+                }
             }
         }
 
@@ -4204,19 +4237,7 @@
                 }
             });
 
-            // Situation selection (V2)
-            document.getElementById('situation-selector').addEventListener('click', (e) => {
-                if (e.target.classList.contains('situation-btn')) {
-                    selectSituation(e.target.dataset.id);
-                }
-            });
-
-            // Action selection (V2)
-            document.getElementById('action-selector').addEventListener('click', (e) => {
-                if (e.target.classList.contains('action-btn')) {
-                    selectAction(e.target.dataset.id);
-                }
-            });
+            // V9.1: Situation, Action, Props selection now handled in render functions via checkboxes
 
             // Custom action input (V2)
             document.getElementById('custom-action-input').addEventListener('input', updatePromptPreview);
@@ -4234,13 +4255,6 @@
             document.getElementById('aspect-ratio-selector')?.addEventListener('change', updatePromptPreview);
             document.getElementById('time-of-day-selector')?.addEventListener('change', updatePromptPreview);
             document.getElementById('custom-props-input')?.addEventListener('input', updatePromptPreview);
-
-            // Props selector
-            document.getElementById('props-selector').addEventListener('click', (e) => {
-                if (e.target.classList.contains('props-btn')) {
-                    selectProp(e.target.dataset.id);
-                }
-            });
 
             // Lineart strength radio buttons
             document.querySelectorAll('input[name="lineart-strength"]').forEach(radio => {
