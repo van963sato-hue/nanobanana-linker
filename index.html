@@ -395,10 +395,28 @@
                                         </select>
                                         <p class="text-sm text-gray-500 mt-2">※プロジェクトの画風設定がプロンプトに反映されます</p>
                                     </div>
+
+                                    <div id="comic-page-selection" class="hidden">
+                                        <label class="block text-gray-700 font-semibold mb-2">ページ</label>
+                                        <select id="comic-page-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">ページを選択...</option>
+                                        </select>
+                                        <p class="text-sm text-gray-500 mt-2">※ページのコマ設定がプロンプトに反映されます</p>
+                                    </div>
+
+                                    <div id="comic-panel-selection" class="hidden">
+                                        <label class="block text-gray-700 font-semibold mb-2">コマ</label>
+                                        <select id="comic-panel-selector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">全コマ</option>
+                                        </select>
+                                        <p class="text-sm text-gray-500 mt-2">※特定のコマのみ選択可能（デフォルトは全コマ）</p>
+                                    </div>
+
                                     <div id="comic-project-info" class="hidden bg-blue-50 p-4 rounded-lg">
-                                        <h4 class="font-bold text-gray-800 mb-2">選択中のプロジェクト</h4>
+                                        <h4 class="font-bold text-gray-800 mb-2">選択中の設定</h4>
                                         <div id="comic-project-title" class="text-sm text-gray-700 font-semibold mb-1"></div>
-                                        <div id="comic-project-style" class="text-xs text-gray-600"></div>
+                                        <div id="comic-project-style" class="text-xs text-gray-600 mb-1"></div>
+                                        <div id="comic-page-info" class="text-xs text-gray-600 hidden"></div>
                                     </div>
                                 </div>
                             </div>
@@ -1951,6 +1969,8 @@
         let selectedCharacters = []; // Array of character objects
         let selectedSituation = null;
         let selectedComicProject = null; // V10: Selected comic project for home comic mode
+        let selectedComicPage = null; // V10: Selected page from comic project
+        let selectedComicPanelIndex = null; // V10: Selected panel index (null = all panels)
         let selectedAction = null;
         let selectedImages = [];
         let editingCharacterId = null;
@@ -2074,7 +2094,11 @@
         async function selectComicProject(projectId) {
             if (!projectId) {
                 selectedComicProject = null;
+                selectedComicPage = null;
+                selectedComicPanelIndex = null;
                 document.getElementById('comic-project-info').classList.add('hidden');
+                document.getElementById('comic-page-selection').classList.add('hidden');
+                document.getElementById('comic-panel-selection').classList.add('hidden');
                 updatePromptPreview();
                 return;
             }
@@ -2096,6 +2120,83 @@
             document.getElementById('comic-project-style').textContent =
                 styles.length > 0 ? `画風: ${styles.join(', ')}` : '画風設定なし';
 
+            // Load pages for this project
+            await loadComicPageSelector(parseInt(projectId));
+
+            updatePromptPreview();
+        }
+
+        async function loadComicPageSelector(projectId) {
+            const pages = await getPagesByProject(projectId);
+            const selector = document.getElementById('comic-page-selector');
+            const pageSelection = document.getElementById('comic-page-selection');
+
+            if (pages.length === 0) {
+                pageSelection.classList.add('hidden');
+                return;
+            }
+
+            selector.innerHTML = '<option value="">ページを選択...</option>';
+            pages.forEach((page, index) => {
+                const option = document.createElement('option');
+                option.value = page.id;
+                option.textContent = `Page ${index + 1}${page.memo ? ': ' + page.memo.substring(0, 30) : ''}`;
+                selector.appendChild(option);
+            });
+
+            pageSelection.classList.remove('hidden');
+        }
+
+        async function selectComicPage(pageId) {
+            if (!pageId) {
+                selectedComicPage = null;
+                selectedComicPanelIndex = null;
+                document.getElementById('comic-panel-selection').classList.add('hidden');
+                document.getElementById('comic-page-info').classList.add('hidden');
+                updatePromptPreview();
+                return;
+            }
+
+            const pages = await getPagesByProject(selectedComicProject.id);
+            selectedComicPage = pages.find(p => p.id === parseInt(pageId));
+
+            if (!selectedComicPage) return;
+
+            // Show page info
+            const pageIndex = pages.findIndex(p => p.id === selectedComicPage.id);
+            const pageInfo = `📄 Page ${pageIndex + 1} | ${selectedComicPage.panelsPerPage || 1}コマ`;
+            document.getElementById('comic-page-info').textContent = pageInfo;
+            document.getElementById('comic-page-info').classList.remove('hidden');
+
+            // Load panels for this page
+            await loadComicPanelSelector();
+
+            updatePromptPreview();
+        }
+
+        async function loadComicPanelSelector() {
+            if (!selectedComicPage) return;
+
+            const selector = document.getElementById('comic-panel-selector');
+            const panelSelection = document.getElementById('comic-panel-selection');
+
+            const panelCount = selectedComicPage.panelsPerPage || 1;
+
+            selector.innerHTML = '<option value="">全コマ</option>';
+            for (let i = 0; i < panelCount; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                const panel = selectedComicPage.panels && selectedComicPage.panels[i];
+                const desc = panel && panel.customDescription ? `: ${panel.customDescription.substring(0, 20)}` : '';
+                option.textContent = `コマ ${i + 1}${desc}`;
+                selector.appendChild(option);
+            }
+
+            panelSelection.classList.remove('hidden');
+        }
+
+        function selectComicPanel(panelIndex) {
+            selectedComicPanelIndex = panelIndex === '' ? null : parseInt(panelIndex);
             updatePromptPreview();
         }
 
@@ -2690,6 +2791,60 @@
                         else if (format === 'simple-jp') sceneActionParts.push('漫画', 'モノクロ');
                         else if (format === 'natural') sceneActionParts.push('comic-style monochrome illustration');
                     }
+                }
+            }
+
+            // V10: Add comic panel settings if page is selected
+            if (currentMode === 'comic' && selectedComicPage) {
+                if (selectedComicPanelIndex !== null) {
+                    // Single panel selected
+                    const panel = selectedComicPage.panels && selectedComicPage.panels[selectedComicPanelIndex];
+                    if (panel) {
+                        // Add composition
+                        if (panel.composition) {
+                            sceneActionParts.push(panel.composition);
+                        }
+
+                        // Add custom description
+                        if (panel.customDescription) {
+                            sceneActionParts.push(panel.customDescription);
+                        }
+
+                        // Add character names from panel if available
+                        if (panel.characterNames && panel.characterNames.length > 0) {
+                            sceneActionParts.push(`featuring: ${panel.characterNames.join(', ')}`);
+                        }
+
+                        // Add background only flag
+                        if (panel.isBackgroundOnly) {
+                            if (format === 'standard') sceneActionParts.push('no humans', 'scenery');
+                            else if (format === 'simple-jp') sceneActionParts.push('人物なし', '風景');
+                            else if (format === 'natural') sceneActionParts.push('background scenery without characters');
+                        }
+                    }
+                } else {
+                    // All panels - add multi-panel info
+                    const panelCount = selectedComicPage.panelsPerPage || 1;
+                    if (panelCount > 1) {
+                        if (format === 'standard') sceneActionParts.push(`multiple panels`, `${panelCount} panels`);
+                        else if (format === 'simple-jp') sceneActionParts.push(`複数コマ`, `${panelCount}コマ`);
+                        else if (format === 'natural') sceneActionParts.push(`comic layout with ${panelCount} panels`);
+
+                        // Collect all custom descriptions from panels
+                        if (selectedComicPage.panels && selectedComicPage.panels.length > 0) {
+                            const descriptions = selectedComicPage.panels
+                                .map((p, i) => p.customDescription ? `Panel ${i + 1}: ${p.customDescription}` : null)
+                                .filter(d => d);
+                            if (descriptions.length > 0) {
+                                sceneActionParts.push(descriptions.join(', '));
+                            }
+                        }
+                    }
+                }
+
+                // Add page memo if available
+                if (selectedComicPage.memo) {
+                    sceneActionParts.push(`[${selectedComicPage.memo}]`);
                 }
             }
 
@@ -4856,6 +5011,16 @@
             // V10: Comic Project Selector
             document.getElementById('comic-project-selector')?.addEventListener('change', (e) => {
                 selectComicProject(e.target.value);
+            });
+
+            // V10: Comic Page Selector
+            document.getElementById('comic-page-selector')?.addEventListener('change', (e) => {
+                selectComicPage(e.target.value);
+            });
+
+            // V10: Comic Panel Selector
+            document.getElementById('comic-panel-selector')?.addEventListener('change', (e) => {
+                selectComicPanel(e.target.value);
             });
 
             // V9: History Management
