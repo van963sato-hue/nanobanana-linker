@@ -2256,13 +2256,18 @@
                         composition: '',
                         gaze: '',
                         states: [],
-                        ageModifier: ''
+                        ageModifier: '',
+                        // V10: Per-character costume, situations, props, actions
+                        costumeId: null,
+                        situations: [],
+                        props: [],
+                        actions: []
                     };
                 }
             }
 
             renderCharacterSelector();
-            renderPerCharacterAdvancedSettings(); // V8
+            await renderPerCharacterAdvancedSettings(); // V8
             updatePromptPreview();
         }
 
@@ -2294,7 +2299,7 @@
         }
 
         // V8: Render per-character advanced settings
-        function renderPerCharacterAdvancedSettings() {
+        async function renderPerCharacterAdvancedSettings() {
             const container = document.getElementById('per-character-advanced-settings');
 
             if (selectedCharacters.length === 0) {
@@ -2302,8 +2307,23 @@
                 return;
             }
 
+            // V10: Load data for selectors
+            const costumes = await getAllCostumes();
+            const situations = await getAllSituations();
+            const props = await getAllProps();
+            const actions = await getAllActions();
+
             container.innerHTML = selectedCharacters.map(char => {
-                const settings = perCharacterSettings[char.id] || { composition: '', gaze: '', states: [], ageModifier: '' };
+                const settings = perCharacterSettings[char.id] || {
+                    composition: '',
+                    gaze: '',
+                    states: [],
+                    ageModifier: '',
+                    costumeId: null,
+                    situations: [],
+                    props: [],
+                    actions: []
+                };
 
                 return `
                     <div class="accordion">
@@ -2405,6 +2425,56 @@
                                         </label>
                                     </div>
                                 </div>
+
+                                <!-- V10: Costume -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">👗 衣装 (Costume)</label>
+                                    <select class="char-costume w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" data-char-id="${char.id}">
+                                        <option value="">キャラ固有の衣装</option>
+                                        ${costumes.map(costume => `
+                                            <option value="${costume.id}" ${settings.costumeId === costume.id ? 'selected' : ''}>${costume.name}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+
+                                <!-- V10: Situations (Multiple) -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">📍 場所 (Situations)</label>
+                                    <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                        ${situations.map(situation => `
+                                            <label class="flex items-center space-x-2 p-1 cursor-pointer hover:bg-blue-50 text-xs">
+                                                <input type="checkbox" class="char-situation w-4 h-4" data-char-id="${char.id}" data-situation-id="${situation.id}" ${settings.situations.includes(situation.id) ? 'checked' : ''}>
+                                                <span>${situation.name}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- V10: Props (Multiple) -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">🎁 小物 (Props)</label>
+                                    <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                        ${props.map(prop => `
+                                            <label class="flex items-center space-x-2 p-1 cursor-pointer hover:bg-blue-50 text-xs">
+                                                <input type="checkbox" class="char-prop w-4 h-4" data-char-id="${char.id}" data-prop-id="${prop.id}" ${settings.props.includes(prop.id) ? 'checked' : ''}>
+                                                <span>${prop.name}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- V10: Actions (Multiple) -->
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">🎬 行動 (Actions)</label>
+                                    <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                        ${actions.map(action => `
+                                            <label class="flex items-center space-x-2 p-1 cursor-pointer hover:bg-blue-50 text-xs">
+                                                <input type="checkbox" class="char-action w-4 h-4" data-char-id="${char.id}" data-action-id="${action.id}" ${settings.actions.includes(action.id) ? 'checked' : ''}>
+                                                <span>${action.name}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2463,6 +2533,72 @@
                     const charId = parseInt(e.target.dataset.charId);
                     if (perCharacterSettings[charId]) {
                         perCharacterSettings[charId].ageModifier = e.target.value;
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // V10: Costume selectors
+            document.querySelectorAll('.char-costume').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const costumeId = e.target.value ? parseInt(e.target.value) : null;
+                    if (perCharacterSettings[charId]) {
+                        perCharacterSettings[charId].costumeId = costumeId;
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // V10: Situation checkboxes
+            document.querySelectorAll('.char-situation').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const situationId = parseInt(e.target.dataset.situationId);
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].situations.includes(situationId)) {
+                                perCharacterSettings[charId].situations.push(situationId);
+                            }
+                        } else {
+                            perCharacterSettings[charId].situations = perCharacterSettings[charId].situations.filter(id => id !== situationId);
+                        }
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // V10: Prop checkboxes
+            document.querySelectorAll('.char-prop').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const propId = parseInt(e.target.dataset.propId);
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].props.includes(propId)) {
+                                perCharacterSettings[charId].props.push(propId);
+                            }
+                        } else {
+                            perCharacterSettings[charId].props = perCharacterSettings[charId].props.filter(id => id !== propId);
+                        }
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // V10: Action checkboxes
+            document.querySelectorAll('.char-action').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const actionId = parseInt(e.target.dataset.actionId);
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].actions.includes(actionId)) {
+                                perCharacterSettings[charId].actions.push(actionId);
+                            }
+                        } else {
+                            perCharacterSettings[charId].actions = perCharacterSettings[charId].actions.filter(id => id !== actionId);
+                        }
                         updatePromptPreview();
                     }
                 });
@@ -2687,22 +2823,27 @@
                 sections.push(positivePreset);
             }
 
-            // V9: Get selected costume
-            const costumeId = document.getElementById('costume-selector')?.value;
-            let selectedCostume = null;
-            if (costumeId) {
-                const costumes = await getAllCostumes();
-                selectedCostume = costumes.find(c => c.id === parseInt(costumeId));
-            }
+            // V10: Load data for per-character settings
+            const allCostumes = await getAllCostumes();
+            const allSituations = await getAllSituations();
+            const allProps = await getAllProps();
+            const allActions = await getAllActions();
 
             // Character sections with V8 per-character advanced settings
             if (selectedCharacters.length > 0) {
                 for (const char of selectedCharacters) {
+                    const settings = perCharacterSettings[char.id];
+
+                    // V10: Get character-specific costume
+                    let selectedCostume = null;
+                    if (settings && settings.costumeId) {
+                        selectedCostume = allCostumes.find(c => c.id === settings.costumeId);
+                    }
+
                     const charTags = await buildCharacterPrompt(char, format, selectedCostume);
 
                     // V8: Add per-character advanced settings
                     const advancedParts = [];
-                    const settings = perCharacterSettings[char.id];
                     if (settings) {
                         if (settings.composition) advancedParts.push(settings.composition);
                         if (settings.gaze) advancedParts.push(settings.gaze);
@@ -2710,6 +2851,39 @@
                             advancedParts.push(...settings.states);
                         }
                         if (settings.ageModifier) advancedParts.push(settings.ageModifier);
+
+                        // V10: Add per-character situations
+                        if (settings.situations && settings.situations.length > 0) {
+                            const situationTags = settings.situations
+                                .map(id => allSituations.find(s => s.id === id))
+                                .filter(s => s)
+                                .map(s => s.tags);
+                            if (situationTags.length > 0) {
+                                advancedParts.push(...situationTags);
+                            }
+                        }
+
+                        // V10: Add per-character props
+                        if (settings.props && settings.props.length > 0) {
+                            const propTags = settings.props
+                                .map(id => allProps.find(p => p.id === id))
+                                .filter(p => p)
+                                .map(p => p.prompt);
+                            if (propTags.length > 0) {
+                                advancedParts.push(...propTags);
+                            }
+                        }
+
+                        // V10: Add per-character actions
+                        if (settings.actions && settings.actions.length > 0) {
+                            const actionTags = settings.actions
+                                .map(id => allActions.find(a => a.id === id))
+                                .filter(a => a)
+                                .map(a => a.tags);
+                            if (actionTags.length > 0) {
+                                advancedParts.push(...actionTags);
+                            }
+                        }
                     }
 
                     // V8: Add character physical attributes from database
