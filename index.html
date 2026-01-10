@@ -361,7 +361,16 @@
                                 <span class="icon">▼</span>
                             </div>
                             <div class="accordion-content">
-                                <div id="character-selector" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
+                                <!-- V10: Sort controls -->
+                                <div class="flex justify-end gap-2 mb-3">
+                                    <button id="char-sort-asc" class="text-xs px-3 py-1 border rounded-lg hover:bg-gray-100 transition">
+                                        🔤 名前順
+                                    </button>
+                                    <button id="char-sort-desc" class="text-xs px-3 py-1 border rounded-lg hover:bg-gray-100 transition">
+                                        🔤 逆順
+                                    </button>
+                                </div>
+                                <div id="character-selector" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-gray-50">
                                     <div class="text-center text-gray-400 col-span-full py-8">
                                         キャラクターを登録してください
                                     </div>
@@ -437,7 +446,13 @@
                                 <div class="space-y-6">
                                     <!-- Where? Situation Selection -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">📍 Where? （場所）</h3>
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h3 class="text-lg font-bold text-gray-800">📍 Where? （場所）</h3>
+                                            <div class="flex gap-2">
+                                                <button id="situation-sort-asc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↑</button>
+                                                <button id="situation-sort-desc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↓</button>
+                                            </div>
+                                        </div>
                                         <div id="situation-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
                                             <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
                                                 指定なし
@@ -447,7 +462,13 @@
 
                                     <!-- Doing What? Action Selection -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎬 Doing What? （行動）</h3>
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h3 class="text-lg font-bold text-gray-800">🎬 Doing What? （行動）</h3>
+                                            <div class="flex gap-2">
+                                                <button id="action-sort-asc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↑</button>
+                                                <button id="action-sort-desc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↓</button>
+                                            </div>
+                                        </div>
                                         <div id="action-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
                                             <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
                                                 指定なし
@@ -460,7 +481,13 @@
 
                                     <!-- Props (V6) -->
                                     <div>
-                                        <h3 class="text-lg font-bold text-gray-800 mb-3">🎁 Props （小物）</h3>
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h3 class="text-lg font-bold text-gray-800">🎁 Props （小物）</h3>
+                                            <div class="flex gap-2">
+                                                <button id="props-sort-asc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↑</button>
+                                                <button id="props-sort-desc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↓</button>
+                                            </div>
+                                        </div>
                                         <div id="props-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
                                             <button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
                                                 指定なし
@@ -1991,6 +2018,12 @@
         let currentOutputFormat = 'standard'; // standard, simple-jp, natural
         let strictSourceMode = false;
 
+        // ===== UI State (V10) - Sort preferences =====
+        let charSortOrder = 'asc'; // asc, desc
+        let situationSortOrder = 'asc';
+        let actionSortOrder = 'asc';
+        let propsSortOrder = 'asc';
+
         // ===== Tab Navigation (V2, V9: Updated for Bottom Nav) =====
         function switchTab(tabName) {
             currentTab = tabName;
@@ -2203,19 +2236,26 @@
         // ===== Character Selection (V2) =====
         async function renderCharacterSelector() {
             const container = document.getElementById('character-selector');
-            const characters = await getAllCharacters();
+            let characters = await getAllCharacters();
 
             if (characters.length === 0) {
                 container.innerHTML = '<div class="text-center text-gray-400 col-span-full py-8">キャラクターを登録してください</div>';
                 return;
             }
 
+            // V10: Sort characters (pinned first, then by name)
+            characters = sortItems(characters, charSortOrder);
+
             container.innerHTML = characters.map(char => {
                 const isSelected = selectedCharacters.some(c => c.id === char.id);
                 const thumbnail = char.images && char.images[0] ? char.images[0] : '';
+                const isPinned = char.pinned || false;
 
                 return `
-                    <div class="character-card card p-2 text-center ${isSelected ? 'selected' : ''}" data-id="${char.id}">
+                    <div class="character-card card p-2 text-center relative ${isSelected ? 'selected' : ''}" data-id="${char.id}">
+                        <button class="pin-btn absolute top-1 right-1 text-lg leading-none hover:scale-110 transition" data-id="${char.id}" data-type="character" data-pinned="${isPinned}">
+                            ${isPinned ? '📌' : '📍'}
+                        </button>
                         ${thumbnail ? `<img src="${thumbnail}" alt="${char.name}" class="w-full h-20 object-cover rounded mb-2">` : '<div class="w-full h-20 bg-gray-200 rounded mb-2 flex items-center justify-center text-3xl">👤</div>'}
                         <div class="text-sm font-semibold text-gray-800 truncate">${char.name}</div>
                     </div>
@@ -2224,6 +2264,25 @@
 
             // Update reference images
             updateReferenceImages();
+        }
+
+        // V10: Sort items with pinned first, then by name
+        function sortItems(items, sortOrder) {
+            return items.sort((a, b) => {
+                // Pinned items always come first
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+
+                // Sort by name
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+
+                if (sortOrder === 'asc') {
+                    return nameA.localeCompare(nameB, 'ja');
+                } else {
+                    return nameB.localeCompare(nameA, 'ja');
+                }
+            });
         }
 
         async function toggleCharacterSelection(characterId) {
@@ -2608,15 +2667,26 @@
         // ===== Situation Selection (V2) =====
         async function renderSituationSelector() {
             const container = document.getElementById('situation-selector');
-            const situations = await getAllSituations();
+            let situations = await getAllSituations();
+
+            // V10: Sort situations (pinned first, then by name)
+            situations = sortItems(situations, situationSortOrder);
 
             let html = '<button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedSituation ? ' active' : '') + '" data-id="">指定なし</button>';
 
-            html += situations.map(situation => `
-                <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedSituation && selectedSituation.id === situation.id ? 'active' : ''}" data-id="${situation.id}">
-                    ${situation.name}
-                </button>
-            `).join('');
+            html += situations.map(situation => {
+                const isPinned = situation.pinned || false;
+                return `
+                <div class="relative">
+                    <button class="pin-btn-small absolute top-0 right-0 text-sm z-10" data-id="${situation.id}" data-type="situation" data-pinned="${isPinned}">
+                        ${isPinned ? '📌' : '📍'}
+                    </button>
+                    <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedSituation && selectedSituation.id === situation.id ? 'active' : ''}" data-id="${situation.id}">
+                        ${situation.name}
+                    </button>
+                </div>
+            `;
+            }).join('');
 
             container.innerHTML = html;
         }
@@ -2636,15 +2706,26 @@
         // ===== Action Selection (V2) =====
         async function renderActionSelector() {
             const container = document.getElementById('action-selector');
-            const actions = await getAllActions();
+            let actions = await getAllActions();
+
+            // V10: Sort actions (pinned first, then by name)
+            actions = sortItems(actions, actionSortOrder);
 
             let html = '<button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition' + (!selectedAction ? ' active' : '') + '" data-id="">指定なし</button>';
 
-            html += actions.map(action => `
-                <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedAction && selectedAction.id === action.id ? 'active' : ''}" data-id="${action.id}">
-                    ${action.name}
-                </button>
-            `).join('');
+            html += actions.map(action => {
+                const isPinned = action.pinned || false;
+                return `
+                <div class="relative">
+                    <button class="pin-btn-small absolute top-0 right-0 text-sm z-10" data-id="${action.id}" data-type="action" data-pinned="${isPinned}">
+                        ${isPinned ? '📌' : '📍'}
+                    </button>
+                    <button class="action-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition ${selectedAction && selectedAction.id === action.id ? 'active' : ''}" data-id="${action.id}">
+                        ${action.name}
+                    </button>
+                </div>
+            `;
+            }).join('');
 
             container.innerHTML = html;
         }
