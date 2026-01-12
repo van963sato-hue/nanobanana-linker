@@ -436,30 +436,14 @@
                             <!-- Dynamically populated when characters are selected -->
                         </div>
 
-                        <!-- Accordion 2: Scene & Props (V6) -->
+                        <!-- Accordion 2: Action & Time Period (V6) -->
                         <div class="accordion">
                             <div class="accordion-header" onclick="toggleAccordion(this)">
-                                <span>🎬 Scene & Props （シーン・小物・時間帯）</span>
+                                <span>🎬 Action & Time Period （行動・時間帯）</span>
                                 <span class="icon">▼</span>
                             </div>
                             <div class="accordion-content">
                                 <div class="space-y-6">
-                                    <!-- Where? Situation Selection -->
-                                    <div>
-                                        <div class="flex justify-between items-center mb-3">
-                                            <h3 class="text-lg font-bold text-gray-800">📍 Where? （場所）</h3>
-                                            <div class="flex gap-2">
-                                                <button id="situation-sort-asc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↑</button>
-                                                <button id="situation-sort-desc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↓</button>
-                                            </div>
-                                        </div>
-                                        <div id="situation-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
-                                            <button class="situation-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
-                                                指定なし
-                                            </button>
-                                        </div>
-                                    </div>
-
                                     <!-- Doing What? Action Selection -->
                                     <div>
                                         <div class="flex justify-between items-center mb-3">
@@ -476,25 +460,6 @@
                                         </div>
                                         <label class="block text-gray-700 font-semibold mb-2">フリー入力（日本語可）</label>
                                         <textarea id="custom-action-input" rows="2" placeholder="例：丸々しているところ、祈っている、など"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-                                    </div>
-
-                                    <!-- Props (V6) -->
-                                    <div>
-                                        <div class="flex justify-between items-center mb-3">
-                                            <h3 class="text-lg font-bold text-gray-800">🎁 Props （小物）</h3>
-                                            <div class="flex gap-2">
-                                                <button id="props-sort-asc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↑</button>
-                                                <button id="props-sort-desc" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">🔤↓</button>
-                                            </div>
-                                        </div>
-                                        <div id="props-selector" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-lg bg-gray-50">
-                                            <button class="props-btn p-3 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-id="">
-                                                指定なし
-                                            </button>
-                                        </div>
-                                        <label class="block text-gray-700 font-semibold mb-2">フリー入力（小物）</label>
-                                        <textarea id="custom-props-input" rows="2" placeholder="例：剣、本、花束、など"
                                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                                     </div>
 
@@ -2005,7 +1970,7 @@
         let editingActionId = null;
 
         // V8: Per-character advanced settings
-        // Structure: { characterId: { composition, gaze, states: [], ageModifier } }
+        // Structure: { characterId: { composition, gaze, states: [], ageModifier, lookingAt: [], lookingAwayFrom: [] } }
         let perCharacterSettings = {};
 
         // ===== UI State (V3 Story Mode) =====
@@ -2320,7 +2285,10 @@
                         costumeId: null,
                         situations: [],
                         props: [],
-                        actions: []
+                        actions: [],
+                        // V11: Multi-character gaze options
+                        lookingAt: [],
+                        lookingAwayFrom: []
                     };
                 }
             }
@@ -2428,7 +2396,9 @@
                     costumeId: null,
                     situations: [],
                     props: [],
-                    actions: []
+                    actions: [],
+                    lookingAt: [],
+                    lookingAwayFrom: []
                 };
 
                 return `
@@ -2465,6 +2435,34 @@
                                         <option value="looking back" ${settings.gaze === 'looking back' ? 'selected' : ''}>🔙 後ろを見る</option>
                                     </select>
                                 </div>
+
+                                <!-- V11: Multi-character gaze options -->
+                                ${selectedCharacters.length > 1 ? `
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">👀 このキャラを見る (Looking At)</label>
+                                    <div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                        ${selectedCharacters.filter(otherChar => otherChar.id !== char.id).map(otherChar => `
+                                            <label class="flex items-center space-x-2 p-1 cursor-pointer hover:bg-blue-50 text-xs">
+                                                <input type="checkbox" class="char-looking-at w-4 h-4" data-char-id="${char.id}" data-target-char-id="${otherChar.id}" ${settings.lookingAt.includes(otherChar.id) ? 'checked' : ''}>
+                                                <span>${otherChar.name}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2 text-sm">🙈 このキャラから目を逸らす (Looking Away From)</label>
+                                    <div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                        ${selectedCharacters.filter(otherChar => otherChar.id !== char.id).map(otherChar => `
+                                            <label class="flex items-center space-x-2 p-1 cursor-pointer hover:bg-blue-50 text-xs">
+                                                <input type="checkbox" class="char-looking-away-from w-4 h-4" data-char-id="${char.id}" data-target-char-id="${otherChar.id}" ${settings.lookingAwayFrom.includes(otherChar.id) ? 'checked' : ''}>
+                                                <span>${otherChar.name}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
+
 
                                 <!-- States -->
                                 <div>
@@ -2709,6 +2707,42 @@
                     }
                 });
             });
+
+            // V11: Looking at checkboxes
+            document.querySelectorAll('.char-looking-at').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const targetCharId = parseInt(e.target.dataset.targetCharId);
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].lookingAt.includes(targetCharId)) {
+                                perCharacterSettings[charId].lookingAt.push(targetCharId);
+                            }
+                        } else {
+                            perCharacterSettings[charId].lookingAt = perCharacterSettings[charId].lookingAt.filter(id => id !== targetCharId);
+                        }
+                        updatePromptPreview();
+                    }
+                });
+            });
+
+            // V11: Looking away from checkboxes
+            document.querySelectorAll('.char-looking-away-from').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const charId = parseInt(e.target.dataset.charId);
+                    const targetCharId = parseInt(e.target.dataset.targetCharId);
+                    if (perCharacterSettings[charId]) {
+                        if (e.target.checked) {
+                            if (!perCharacterSettings[charId].lookingAwayFrom.includes(targetCharId)) {
+                                perCharacterSettings[charId].lookingAwayFrom.push(targetCharId);
+                            }
+                        } else {
+                            perCharacterSettings[charId].lookingAwayFrom = perCharacterSettings[charId].lookingAwayFrom.filter(id => id !== targetCharId);
+                        }
+                        updatePromptPreview();
+                    }
+                });
+            });
         }
 
         // ===== Situation Selection (V2) =====
@@ -2792,7 +2826,6 @@
         // ===== Generator Hub Init (V2) =====
         async function renderGeneratorHub() {
             await renderCharacterSelector();
-            await renderSituationSelector();
             await renderActionSelector();
             updatePromptPreview();
         }
@@ -3012,6 +3045,33 @@
                                 advancedParts.push(...actionTags);
                             }
                         }
+
+                        // V11: Add multi-character gaze options
+                        if (settings.lookingAt && settings.lookingAt.length > 0) {
+                            const targetNames = settings.lookingAt
+                                .map(id => selectedCharacters.find(c => c.id === id))
+                                .filter(c => c)
+                                .map(c => c.name);
+                            if (targetNames.length > 0) {
+                                const gazeTag = targetNames.length === 1
+                                    ? `looking at ${targetNames[0]}`
+                                    : `looking at ${targetNames.join(' and ')}`;
+                                advancedParts.push(gazeTag);
+                            }
+                        }
+
+                        if (settings.lookingAwayFrom && settings.lookingAwayFrom.length > 0) {
+                            const targetNames = settings.lookingAwayFrom
+                                .map(id => selectedCharacters.find(c => c.id === id))
+                                .filter(c => c)
+                                .map(c => c.name);
+                            if (targetNames.length > 0) {
+                                const gazeTag = targetNames.length === 1
+                                    ? `looking away from ${targetNames[0]}`
+                                    : `looking away from ${targetNames.join(' and ')}`;
+                                advancedParts.push(gazeTag);
+                            }
+                        }
                     }
 
                     // V8: Add character physical attributes from database
@@ -3162,15 +3222,9 @@
                 }
             }
 
-            // Add situation and action tags
-            if (selectedSituation) sceneActionParts.push(selectedSituation.tags);
+            // Add action tags (global)
             if (selectedAction) sceneActionParts.push(selectedAction.tags);
             if (customAction) sceneActionParts.push(customAction);
-
-            // V6: Props
-            if (selectedProp) sceneActionParts.push(selectedProp.prompt);
-            const customProps = document.getElementById('custom-props-input')?.value.trim();
-            if (customProps) sceneActionParts.push(customProps);
 
             // V6: Time of Day
             const timeOfDay = document.getElementById('time-of-day-selector')?.value;
@@ -4756,6 +4810,7 @@
             }
 
             try {
+                console.log('アップロード開始...');
                 const data = {
                     characters: await getAllCharacters(),
                     situations: await getAllSituations(),
@@ -4770,6 +4825,8 @@
                 // データを文字列化
                 const dataString = JSON.stringify(data);
                 const encoder = new TextEncoder();
+                const totalBytes = encoder.encode(dataString).length;
+                console.log(`データサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
 
                 // チャンクサイズ（800KB = 800,000バイト）
                 const CHUNK_SIZE = 800000;
@@ -4798,26 +4855,41 @@
                     chunks.push(currentChunk);
                 }
 
+                console.log(`チャンク数: ${chunks.length}`);
+
                 const uid = firebaseAuth.currentUser.uid;
                 const chunksRef = firebaseDb.collection('users').doc(uid).collection('backup').doc('data').collection('chunks');
 
-                // 既存のチャンクを削除
+                // 既存のチャンクを削除（バッチサイズ制限を考慮）
                 const existingChunks = await chunksRef.get();
-                const batch1 = firebaseDb.batch();
-                existingChunks.docs.forEach(doc => {
-                    batch1.delete(doc.ref);
-                });
-                await batch1.commit();
+                console.log(`既存チャンク削除中... (${existingChunks.docs.length}個)`);
 
-                // 新しいチャンクを保存（バッチ処理）
-                const batch2 = firebaseDb.batch();
-                chunks.forEach((chunkData, index) => {
-                    const chunkRef = chunksRef.doc(String(index));
-                    batch2.set(chunkRef, { data: chunkData });
-                });
-                await batch2.commit();
+                // Firestoreのバッチ制限は500操作なので、複数バッチに分割
+                const BATCH_SIZE = 500;
+                for (let i = 0; i < existingChunks.docs.length; i += BATCH_SIZE) {
+                    const batch = firebaseDb.batch();
+                    const batchDocs = existingChunks.docs.slice(i, i + BATCH_SIZE);
+                    batchDocs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                }
 
-                alert(`クラウドへのアップロードが完了しました! (${chunks.length}チャンク)`);
+                // 新しいチャンクを保存（バッチ処理、500操作制限を考慮）
+                console.log('新しいチャンクをアップロード中...');
+                for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+                    const batch = firebaseDb.batch();
+                    const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+                    batchChunks.forEach((chunkData, batchIndex) => {
+                        const globalIndex = i + batchIndex;
+                        const chunkRef = chunksRef.doc(String(globalIndex));
+                        batch.set(chunkRef, { data: chunkData });
+                    });
+                    await batch.commit();
+                    console.log(`進行状況: ${Math.min(i + BATCH_SIZE, chunks.length)}/${chunks.length} チャンク`);
+                }
+
+                alert(`クラウドへのアップロードが完了しました!\nサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB\nチャンク数: ${chunks.length}`);
             } catch (error) {
                 console.error('Upload error:', error);
                 alert('アップロードに失敗しました: ' + error.message);
@@ -4835,6 +4907,7 @@
             }
 
             try {
+                console.log('ダウンロード開始...');
                 const uid = firebaseAuth.currentUser.uid;
                 const chunksRef = firebaseDb.collection('users').doc(uid).collection('backup').doc('data').collection('chunks');
 
@@ -4846,14 +4919,18 @@
                     return;
                 }
 
+                console.log(`チャンク数: ${chunksSnapshot.docs.length}`);
+
                 // チャンクをIDでソート（0, 1, 2...）
                 const sortedChunks = chunksSnapshot.docs
                     .map(doc => ({ id: parseInt(doc.id), data: doc.data().data }))
                     .sort((a, b) => a.id - b.id);
 
                 // チャンクを結合
+                console.log('チャンクを結合中...');
                 const dataString = sortedChunks.map(chunk => chunk.data).join('');
                 const data = JSON.parse(dataString);
+                console.log('データの復元を開始...');
 
                 // Clear existing data first
                 const existingCharacters = await getAllCharacters();
@@ -4987,30 +5064,6 @@
                 renderCharacterSelector();
             });
 
-            // Situation selection (V2)
-            document.getElementById('situation-selector').addEventListener('click', (e) => {
-                // V10: Pin button
-                if (e.target.classList.contains('pin-btn-small')) {
-                    e.stopPropagation();
-                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
-                    return;
-                }
-
-                if (e.target.classList.contains('situation-btn')) {
-                    selectSituation(e.target.dataset.id);
-                }
-            });
-
-            // V10: Situation sort buttons
-            document.getElementById('situation-sort-asc')?.addEventListener('click', () => {
-                situationSortOrder = 'asc';
-                renderSituationSelector();
-            });
-            document.getElementById('situation-sort-desc')?.addEventListener('click', () => {
-                situationSortOrder = 'desc';
-                renderSituationSelector();
-            });
-
             // Action selection (V2)
             document.getElementById('action-selector').addEventListener('click', (e) => {
                 // V10: Pin button
@@ -5050,31 +5103,6 @@
             // V6 controls
             document.getElementById('aspect-ratio-selector')?.addEventListener('change', updatePromptPreview);
             document.getElementById('time-of-day-selector')?.addEventListener('change', updatePromptPreview);
-            document.getElementById('custom-props-input')?.addEventListener('input', updatePromptPreview);
-
-            // Props selector
-            document.getElementById('props-selector').addEventListener('click', (e) => {
-                // V10: Pin button
-                if (e.target.classList.contains('pin-btn-small')) {
-                    e.stopPropagation();
-                    togglePin(e.target.dataset.id, e.target.dataset.type, e.target.dataset.pinned === 'true');
-                    return;
-                }
-
-                if (e.target.classList.contains('props-btn')) {
-                    selectProp(e.target.dataset.id);
-                }
-            });
-
-            // V10: Props sort buttons
-            document.getElementById('props-sort-asc')?.addEventListener('click', () => {
-                propsSortOrder = 'asc';
-                renderPropsSelector();
-            });
-            document.getElementById('props-sort-desc')?.addEventListener('click', () => {
-                propsSortOrder = 'desc';
-                renderPropsSelector();
-            });
 
             // Lineart strength radio buttons
             document.querySelectorAll('input[name="lineart-strength"]').forEach(radio => {
