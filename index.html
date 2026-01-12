@@ -4580,9 +4580,16 @@
             };
 
             if (typeof firebase !== 'undefined' && !firebaseApp) {
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                firebaseAuth = firebase.auth();
-                firebaseDb = firebase.firestore();
+                try {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    firebaseAuth = firebase.auth();
+                    firebaseDb = firebase.firestore();
+                    console.log('Firebase初期化成功');
+                } catch (error) {
+                    console.error('Firebase初期化エラー:', error);
+                }
+            } else if (typeof firebase === 'undefined') {
+                console.warn('Firebase SDKがロードされていません');
             }
         }
 
@@ -5513,6 +5520,31 @@
             updateColorMode(); // Initialize color picker visibility
 
             // V9: Initialize Firebase and Costume Selector
+            // Firebase SDKのロードを待つ
+            const waitForFirebase = () => {
+                return new Promise((resolve) => {
+                    if (typeof firebase !== 'undefined') {
+                        resolve();
+                    } else {
+                        // Firebase SDKのロードを待つ（最大5秒）
+                        let attempts = 0;
+                        const checkInterval = setInterval(() => {
+                            attempts++;
+                            if (typeof firebase !== 'undefined') {
+                                clearInterval(checkInterval);
+                                resolve();
+                            } else if (attempts > 50) {
+                                // 5秒経過してもロードされない場合
+                                clearInterval(checkInterval);
+                                console.warn('Firebase SDKのロードがタイムアウトしました');
+                                resolve();
+                            }
+                        }, 100);
+                    }
+                });
+            };
+
+            await waitForFirebase();
             try {
                 initFirebase();
                 updateFirebaseUI();
