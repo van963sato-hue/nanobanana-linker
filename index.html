@@ -4780,6 +4780,9 @@
         }
 
         // ===== V9: Firebase Sync Functions =====
+        // アプリ固有の識別子
+        const APP_UNIQUE_KEY = 'nanobanana_linker';
+
         async function handleFirebaseLogin() {
             if (!firebaseAuth) {
                 alert('Firebaseが初期化されていません。\n※デモ版ではFirebase設定が必要です。');
@@ -4873,36 +4876,32 @@
                 console.log(`チャンク数: ${chunks.length}`);
 
                 const uid = firebaseAuth.currentUser.uid;
-                const chunksRef = firebaseDb.collection('users').doc(uid).collection('backup').doc('data').collection('chunks');
+                // 新しいパス構造: users/{uid}/apps/{APP_UNIQUE_KEY}/chunks/{index}
+                const chunksRef = firebaseDb.collection('users').doc(uid).collection('apps').doc(APP_UNIQUE_KEY).collection('chunks');
 
-                // 既存のチャンクを削除（バッチサイズ制限を考慮）
+                // 既存のチャンクを削除（並列削除）
                 const existingChunks = await chunksRef.get();
-                console.log(`既存チャンク削除中... (${existingChunks.docs.length}個)`);
-
-                // Firestoreのバッチ制限は500操作なので、複数バッチに分割
-                const BATCH_SIZE = 500;
-                for (let i = 0; i < existingChunks.docs.length; i += BATCH_SIZE) {
-                    const batch = firebaseDb.batch();
-                    const batchDocs = existingChunks.docs.slice(i, i + BATCH_SIZE);
-                    batchDocs.forEach(doc => {
-                        batch.delete(doc.ref);
-                    });
-                    await batch.commit();
+                if (existingChunks.docs.length > 0) {
+                    console.log(`既存チャンク削除中... (${existingChunks.docs.length}個)`);
+                    const deletePromises = existingChunks.docs.map(doc => doc.ref.delete());
+                    await Promise.all(deletePromises);
+                    console.log('既存チャンク削除完了');
                 }
 
-                // 新しいチャンクを保存（バッチ処理、500操作制限を考慮）
+                // 新しいチャンクを保存（Promise.allで並列アップロード）
                 console.log('新しいチャンクをアップロード中...');
-                for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-                    const batch = firebaseDb.batch();
-                    const batchChunks = chunks.slice(i, i + BATCH_SIZE);
-                    batchChunks.forEach((chunkData, batchIndex) => {
-                        const globalIndex = i + batchIndex;
-                        const chunkRef = chunksRef.doc(String(globalIndex));
-                        batch.set(chunkRef, { data: chunkData });
+                const uploadPromises = chunks.map((chunkData, index) => {
+                    const chunkRef = chunksRef.doc(String(index));
+                    return chunkRef.set({
+                        data: chunkData,
+                        index: index,
+                        timestamp: Date.now()
                     });
-                    await batch.commit();
-                    console.log(`進行状況: ${Math.min(i + BATCH_SIZE, chunks.length)}/${chunks.length} チャンク`);
-                }
+                });
+
+                // 全チャンクを並列アップロード
+                await Promise.all(uploadPromises);
+                console.log('全チャンクのアップロード完了');
 
                 alert(`クラウドへのアップロードが完了しました!\nサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB\nチャンク数: ${chunks.length}`);
             } catch (error) {
@@ -4924,7 +4923,8 @@
             try {
                 console.log('ダウンロード開始...');
                 const uid = firebaseAuth.currentUser.uid;
-                const chunksRef = firebaseDb.collection('users').doc(uid).collection('backup').doc('data').collection('chunks');
+                // 新しいパス構造: users/{uid}/apps/{APP_UNIQUE_KEY}/chunks/{index}
+                const chunksRef = firebaseDb.collection('users').doc(uid).collection('apps').doc(APP_UNIQUE_KEY).collection('chunks');
 
                 // 全チャンクを取得
                 const chunksSnapshot = await chunksRef.get();
