@@ -2748,6 +2748,10 @@
         // ===== Situation Selection (V2) =====
         async function renderSituationSelector() {
             const container = document.getElementById('situation-selector');
+
+            // V11: Situation selector removed from global UI, now only in per-character settings
+            if (!container) return;
+
             let situations = await getAllSituations();
 
             // V10: Sort situations (pinned first, then by name)
@@ -3863,8 +3867,12 @@
         }
 
         async function renderPropsSelector() {
-            props = await getAllProps();
             const container = document.getElementById('props-selector');
+
+            // V11: Props selector removed from global UI, now only in per-character settings
+            if (!container) return;
+
+            props = await getAllProps();
 
             // V10: Sort props (pinned first, then by name)
             props = sortItems(props, propsSortOrder);
@@ -5515,7 +5523,7 @@
             // Initialize V6
             await loadStyleCheckboxes();
             await loadStyleList();
-            await renderPropsSelector();
+            // V11: renderPropsSelector() removed - props selector moved to per-character settings
             await loadPropsList();
             updateColorMode(); // Initialize color picker visibility
 
