@@ -2500,6 +2500,22 @@
                                             <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="angry, angry face" ${settings.states.includes('angry, angry face') ? 'checked' : ''}>
                                             <span>😠 怒り</span>
                                         </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="heart-shaped eyes, heart eyes" ${settings.states.includes('heart-shaped eyes, heart eyes') ? 'checked' : ''}>
+                                            <span>♥ ♥目</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="spiral eyes, @_@" ${settings.states.includes('spiral eyes, @_@') ? 'checked' : ''}>
+                                            <span>🌀 ぐるぐる目</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="sweat drop, nervous" ${settings.states.includes('sweat drop, nervous') ? 'checked' : ''}>
+                                            <span>💦 冷や汗</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 text-sm">
+                                            <input type="checkbox" class="char-state w-4 h-4" data-char-id="${char.id}" data-state="cat mouth, :3" ${settings.states.includes('cat mouth, :3') ? 'checked' : ''}>
+                                            <span>😺 猫口</span>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -3070,9 +3086,10 @@
                                 .filter(c => c)
                                 .map(c => c.name);
                             if (targetNames.length > 0) {
+                                // 「目をそらす」を明確にするため、averted eyesを使用
                                 const gazeTag = targetNames.length === 1
-                                    ? `looking away from ${targetNames[0]}`
-                                    : `looking away from ${targetNames.join(' and ')}`;
+                                    ? `averted eyes, not looking at ${targetNames[0]}`
+                                    : `averted eyes, not looking at ${targetNames.join(' or ')}`;
                                 advancedParts.push(gazeTag);
                             }
                         }
