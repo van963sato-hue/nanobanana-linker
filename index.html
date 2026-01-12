@@ -4783,6 +4783,10 @@
         // アプリ固有の識別子
         const APP_UNIQUE_KEY = 'nanobanana_linker';
 
+        // 連打防止フラグ
+        let isUploading = false;
+        let isDownloading = false;
+
         async function handleFirebaseLogin() {
             if (!firebaseAuth) {
                 alert('Firebaseが初期化されていません。\n※デモ版ではFirebase設定が必要です。');
@@ -4825,6 +4829,20 @@
             if (!firebaseAuth || !firebaseAuth.currentUser || !firebaseDb) {
                 alert('ログインしてください');
                 return;
+            }
+
+            // 連打防止
+            if (isUploading) {
+                alert('アップロード処理中です。しばらくお待ちください。');
+                return;
+            }
+
+            isUploading = true;
+            const uploadBtn = document.getElementById('firebase-upload-btn');
+            const originalText = uploadBtn?.textContent;
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'アップロード中...';
             }
 
             try {
@@ -4907,6 +4925,12 @@
             } catch (error) {
                 console.error('Upload error:', error);
                 alert('アップロードに失敗しました: ' + error.message);
+            } finally {
+                isUploading = false;
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = originalText || 'クラウドへ保存';
+                }
             }
         }
 
@@ -4916,8 +4940,22 @@
                 return;
             }
 
+            // 連打防止
+            if (isDownloading) {
+                alert('ダウンロード処理中です。しばらくお待ちください。');
+                return;
+            }
+
             if (!confirm('クラウドからダウンロードすると、現在のデータが上書きされます。\n続行しますか?')) {
                 return;
+            }
+
+            isDownloading = true;
+            const downloadBtn = document.getElementById('firebase-download-btn');
+            const originalText = downloadBtn?.textContent;
+            if (downloadBtn) {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'ダウンロード中...';
             }
 
             try {
@@ -4944,6 +4982,12 @@
                 // チャンクを結合
                 console.log('チャンクを結合中...');
                 const dataString = sortedChunks.map(chunk => chunk.data).join('');
+
+                // データサイズを計算
+                const encoder = new TextEncoder();
+                const totalBytes = encoder.encode(dataString).length;
+                console.log(`ダウンロードサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
+
                 const data = JSON.parse(dataString);
                 console.log('データの復元を開始...');
 
@@ -5027,11 +5071,17 @@
                     }
                 }
 
-                alert('クラウドからのダウンロードが完了しました!');
+                alert(`クラウドからのダウンロードが完了しました!\nサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB\nチャンク数: ${chunksSnapshot.docs.length}`);
                 location.reload();
             } catch (error) {
                 console.error('Download error:', error);
                 alert('ダウンロードに失敗しました: ' + error.message);
+                // エラー時のみフラグをリセット（成功時はリロードされるため不要）
+                isDownloading = false;
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = originalText || 'クラウドから復元';
+                }
             }
         }
 
