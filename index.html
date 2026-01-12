@@ -4858,37 +4858,23 @@
                     timestamp: Date.now()
                 };
 
-                // データを文字列化
+                // データを文字列化してBase64エンコード
                 const dataString = JSON.stringify(data);
                 const encoder = new TextEncoder();
                 const totalBytes = encoder.encode(dataString).length;
                 console.log(`データサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
 
-                // チャンクサイズ（800KB = 800,000バイト）
+                // Base64エンコード（バイト境界で安全に分割するため）
+                const base64String = btoa(unescape(encodeURIComponent(dataString)));
+                console.log(`Base64エンコード後: ${(base64String.length / 1024 / 1024).toFixed(2)} MB`);
+
+                // チャンクサイズ（800KB = 800,000文字）
                 const CHUNK_SIZE = 800000;
                 const chunks = [];
-                let currentChunk = '';
-                let currentSize = 0;
 
-                // データをUTF-8境界を考慮して分割
-                for (let i = 0; i < dataString.length; i++) {
-                    const char = dataString[i];
-                    const charSize = encoder.encode(char).length;
-
-                    // 次の文字を追加すると800KBを超える場合、新しいチャンクを開始
-                    if (currentSize + charSize > CHUNK_SIZE && currentChunk.length > 0) {
-                        chunks.push(currentChunk);
-                        currentChunk = char;
-                        currentSize = charSize;
-                    } else {
-                        currentChunk += char;
-                        currentSize += charSize;
-                    }
-                }
-
-                // 最後のチャンクを追加
-                if (currentChunk.length > 0) {
-                    chunks.push(currentChunk);
+                // Base64文字列を固定サイズで分割（Base64は安全に分割可能）
+                for (let i = 0; i < base64String.length; i += CHUNK_SIZE) {
+                    chunks.push(base64String.substring(i, i + CHUNK_SIZE));
                 }
 
                 console.log(`チャンク数: ${chunks.length}`);
@@ -4979,15 +4965,22 @@
                     .map(doc => ({ id: parseInt(doc.id), data: doc.data().data }))
                     .sort((a, b) => a.id - b.id);
 
-                // チャンクを結合
+                // チャンクを結合（Base64文字列）
                 console.log('チャンクを結合中...');
-                const dataString = sortedChunks.map(chunk => chunk.data).join('');
+                const base64String = sortedChunks.map(chunk => chunk.data).join('');
+                console.log(`Base64サイズ: ${(base64String.length / 1024 / 1024).toFixed(2)} MB`);
+
+                // Base64デコード
+                console.log('Base64デコード中...');
+                const dataString = decodeURIComponent(escape(atob(base64String)));
 
                 // データサイズを計算
                 const encoder = new TextEncoder();
                 const totalBytes = encoder.encode(dataString).length;
-                console.log(`ダウンロードサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
+                console.log(`元データサイズ: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
 
+                // JSONパース
+                console.log('JSONパース中...');
                 const data = JSON.parse(dataString);
                 console.log('データの復元を開始...');
 
